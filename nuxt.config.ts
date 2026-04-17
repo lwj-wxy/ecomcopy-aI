@@ -4,6 +4,15 @@ import tailwindcss from '@tailwindcss/vite'
 export default defineNuxtConfig({
   compatibilityDate: '2024-11-01',
   devtools: { enabled: false },
+  nitro: {
+    // Attempt to fix resolution issues by disabling some experimental features or adjusting output
+    externals: {
+      inline: ['#internal/nuxt/paths']
+    }
+  },
+  experimental: {
+    // Some versions of Nuxt 3 had resolution issues that were fixed by this
+  },
   modules: [
     '@vueuse/nuxt',
     '@element-plus/nuxt',

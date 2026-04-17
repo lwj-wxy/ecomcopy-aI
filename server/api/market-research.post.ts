@@ -9,34 +9,37 @@ export default defineEventHandler(async (event) => {
   }
 
   const body = await readBody(event);
-  const { platform, timeframe } = body;
+  const { platform, timeframe, language } = body;
   
   const prompt = `
-    你是一个顶级电商市场分析师。
-    当前平台: ${platform}
-    时间范围: 最近 ${timeframe} 天
+    You are a top-tier e-commerce market analyst.
+    Target Platform: ${platform}
+    Timeframe: Last ${timeframe} days
+    Output Language: ${language || 'Chinese'}
     
-    请分析并生成该平台上最近 ${timeframe} 天内的市场报告。
-    返回以下 JSON 格式：
+    Please analyze and generate a market report for the last ${timeframe} days on this platform.
+    The output MUST be a valid JSON object. Use EXACTLY the following keys:
     {
-      "lastUpdate": "2026-04-17",
+      "lastUpdate": "YYYY-MM-DD",
       "platform": "${platform}",
       "categories": [
-        { "category": "品类名", "searchVolume": 12000, "growth": 15.5 }
+        { "category": "Translated Category Name", "searchVolume": 12000, "growth": 15.5 }
       ],
       "products": [
-        { "rank": 1, "name": "产品名称", "price": "$29.9", "sales": "1.2k+", "hotpoint": "爆火原因/卖点", "thumbnail": "https://picsum.photos/seed/product1/100/100" }
+        { "rank": 1, "name": "Translated Product Name", "price": "$29.9", "sales": "1.2k+", "hotpoint": "Translated reason", "thumbnail": "https://picsum.photos/seed/product/100/100" }
       ],
       "insights": [
-        "洞察1: 关于品类的趋势总结",
-        "洞察2: 关于具体单品的共性分析"
+        "Insight in ${language === 'English' ? 'English' : (language || 'Chinese')}",
+        "Insight in ${language === 'English' ? 'English' : (language || 'Chinese')}"
       ]
     }
     
-    注意：
-    1. categories 包含 10 个最具潜力的品类。
-    2. products 包含当前销量最高的 10 个具体产品示例。
-    3. 只返回 JSON 且必须符合结构。
+    Requirements:
+    1. categories contains 10 high-potential categories.
+    2. products contains 10 current best-selling product samples.
+    3. Insights must be high-value, specific, and actionable.
+    4. Return ONLY the raw JSON object, no markdown blocks, no prefix text.
+    5. THE ENTIRE CONTENT MUST BE IN ${language === 'English' ? 'English' : (language || 'Chinese')}.
   `;
 
   try {
@@ -49,7 +52,7 @@ export default defineEventHandler(async (event) => {
       body: JSON.stringify({
         model: "deepseek-chat",
         messages: [
-          { role: "system", content: "你是一个专业的电商数据分析师。只返回 JSON。" },
+          { role: "system", content: "You are a professional e-commerce data analyst. Return ONLY a valid JSON object." },
           { role: "user", content: prompt }
         ],
         response_format: { type: "json_object" },

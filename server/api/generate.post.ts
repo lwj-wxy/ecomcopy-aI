@@ -10,13 +10,21 @@ export default defineEventHandler(async (event) => {
 
   const body = await readBody(event);
   
+  // Map neutral tone keys to descriptive strings for AI
+  const toneMap: Record<string, string> = {
+    'professional': '专业且可靠 (Professional & Reliable)',
+    'emotional': '感性且温馨 (Emotional & Warm)',
+    'premium': '极简且高端 (Minimalist & Premium)'
+  };
+  const toneText = toneMap[body.tone] || body.tone;
+
   const prompt = `
     你是一个专业的电商文案专家。
     发布平台: ${body.platform}
     产品名称: ${body.productName}
     核心卖点: ${body.features}
     目标受众: ${body.targetAudience}
-    文案语气: ${body.tone}
+    文案语气: ${toneText}
     输出语言: ${body.language}
     
     请根据以上参数，生成符合该平台调性和受众偏好的专业文案。

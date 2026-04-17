@@ -1,6 +1,6 @@
 import { ref, watch } from 'vue';
 
-const locale = ref('zh');
+const locale = ref('en');
 
 export const useLocale = () => {
   const setLocale = (newLocale: string) => {
@@ -13,7 +13,12 @@ export const useLocale = () => {
   const initLocale = () => {
     if (process.client) {
       const saved = localStorage.getItem('user-locale');
-      if (saved) locale.value = saved;
+      if (saved) {
+        locale.value = saved;
+      } else {
+        // Default to English for international audience
+        locale.value = 'en';
+      }
     }
   };
 

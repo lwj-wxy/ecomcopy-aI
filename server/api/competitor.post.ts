@@ -9,12 +9,15 @@ export default defineEventHandler(async (event) => {
   }
 
   const body = await readBody(event);
+  const targetLang = body.language || '中文';
   
   const prompt = `
     你是一个顶级的电商竞争情报分析师。
     针对以下产品和竞争信息进行深度分析：
     我的产品: "${body.productName}"
     主要竞争对手或痛点描述: "${body.competitorInfo}"
+    
+    输出语言：${targetLang}
     
     请输出以下 JSON 格式：
     {
@@ -41,6 +44,7 @@ export default defineEventHandler(async (event) => {
     1. Score 和 Metrics 中的数字是 0-100。
     2. 只返回 JSON 且必须符合结构。
     3. 分析要尖锐且具有可操作性。
+    4. 所有显示的文本内容（指标名称、评论、SWOT点、策略等）必须使用指定的输出语言：${targetLang}。
   `;
 
   try {
@@ -53,7 +57,7 @@ export default defineEventHandler(async (event) => {
       body: JSON.stringify({
         model: "deepseek-chat",
         messages: [
-          { role: "system", content: "你是一个专业的电商竞争分析专家。只返回 JSON。" },
+          { role: "system", content: `你是一个专业的电商竞争分析专家。你必须以${targetLang}回答并只返回 JSON。` },
           { role: "user", content: prompt }
         ],
         response_format: { type: "json_object" },

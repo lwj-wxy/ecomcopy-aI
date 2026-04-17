@@ -8,7 +8,18 @@ export const translations: Record<string, any> = {
       loading: '处理中...',
       reset: '重置',
       confirm: '确定',
-      cancel: '取消'
+      cancel: '取消',
+      back: '返回',
+      usageLimitTitle: '额度不足',
+      usageLimitDesc: '您的{plan}当月生成额度已用完 ({usage}/{limit})。请升级套餐以后继续使用，支持我们的开发。',
+      upgradeNow: '查看套餐',
+      loginFirst: '请先登录',
+      missingParams: '请填写必要信息',
+      systemError: '系统繁忙，请稍后再试',
+      saveSuccess: '已自动保存到历史记录',
+      upgradeSuccessTitle: '升级成功',
+      upgradeSuccessMsg: '欢迎成为正式会员！您的基础额度已重置。',
+      errorPrefix: '发生错误: '
     },
     sidebar: {
       copywriting: '标题 & 描述生成',
@@ -39,7 +50,17 @@ export const translations: Record<string, any> = {
       tagTitle: '推荐标签 (Tags)',
       socialTitle: '社交媒体推广',
       copy: '复制',
-      copied: '已复制'
+      copied: '已复制',
+      waitTitle: '等待生成',
+      waitDesc: '在左侧输入产品参数并点击生成，AI 文案将在此处实时展示。',
+      loadingTitle: 'AI 正在构思您的文案...',
+      resultHeader: 'AI 生成结果',
+      platformFormat: '{platform} 格式',
+      tones: {
+        professional: '专业且可靠',
+        emotional: '感性且温馨',
+        premium: '极简且高端'
+      }
     },
     research: {
       title: '每日市场动态调研',
@@ -55,8 +76,20 @@ export const translations: Record<string, any> = {
       waitDesc: '选择平台与周期，AI 将为您呈现最具潜力的 Top 10 商品分类与搜索趋势。',
       syncTitle: '正在同步 {platform} 平台数据...',
       syncDesc: '正在对比数百万条搜索指令与购买转化路径',
-      macroView: '宏观视野：品类趋势',
-      microView: '微观洞见：潜力热销品'
+      lockedTitle: '市场调研功能已锁定',
+      lockedDesc: '每日深度市场调研是专业版 (Pro) 用户的专属功能。升级以解锁全球搜索趋势分析与竞品实时排行。',
+      macroView: '宏观视野',
+      microView: '微观洞见',
+      macroTitle: '宏观：本期活跃增长品类',
+      microTitle: '微观：当前热销单品图鉴',
+      lastUpdateLabel: '最后更新:',
+      trafficDistribution: '流量热度分布',
+      trafficDesc: '基于各搜索引擎与平台站内搜索总量',
+      volumeRank: '流量排名',
+      aiReport: 'AI 趋势洞察报告',
+      overallActivity: '总体活跃度',
+      bullishStatus: '显著上涨 (Highly Bullish)',
+      estSalesLabel: '预估销量:'
     },
     keywords: {
       title: '关键词专家优化',
@@ -99,7 +132,12 @@ export const translations: Record<string, any> = {
       impactLow: '中',
       impactLabel: '影响',
       me: '我方',
-      vs: '竞品平均'
+      vs: '竞品平均',
+      swotStrengths: '优势 (Strengths)',
+      swotWeaknesses: '劣势 (Weaknesses)',
+      swotOpportunities: '机会 (Opportunities)',
+      swotThreats: '威胁 (Threats)',
+      intelligenceScore: '情报评分'
     },
     pricing: {
       title: '选择适合您的增长引擎',
@@ -112,12 +150,12 @@ export const translations: Record<string, any> = {
       starter: {
         name: '入门版 (Starter)',
         desc: '加速您的爆款产出效率',
-        features: ['每月 50 次 AI 文案生成', '深度关键词挖掘技术', '多平台市场趋势对比', '高级竞品差异化情报', '优先生成队列']
+        features: ['每月 100 次 AI 文案生成', '深度关键词挖掘技术', '多平台市场趋势对比', '高级竞品差异化情报', '优先生成队列']
       },
       pro: {
         name: '专业版 (Pro)',
         desc: '为跨境电商工作室和资深卖家打造',
-        features: ['无限次 AI 文案生成', '全功能解锁（包含每日市场调研）', '专属 AI 电商顾问', '新品爆率预测模型', '7x24 小时专属支持']
+        features: ['无限次 AI 文案生成', '全功能解锁（包含每日市场调研）', 'Beta 新功能优先体验权', '新品爆率预测模型', '优先技术支持响应']
       },
       current: '当前套餐',
       upgrade: '立即升级',
@@ -133,6 +171,88 @@ export const translations: Record<string, any> = {
       or: '或者',
       terms: '登录即表示您同意我们的服务条款和隐私政策',
       failed: '登录失败，请重试'
+    },
+    landing: {
+      nav: {
+        features: '功能特性',
+        howItWorks: '工作原理',
+        faq: '常见问题',
+        login: '登录',
+        tryFree: '免费试用'
+      },
+      hero: {
+        badge: '赋能全球电商卖家',
+        titlePart1: '让您的产品在秒级内',
+        titlePart2: '脱颖而出',
+        subtitle: '专业的 AI 电商文案专家。只需输入产品特征，即可生成高转化率的标题、描述和 SEO 标签。',
+        cta: '立即开始生产'
+      },
+      comparision: {
+        before: '优化前',
+        after: 'AI 优化后',
+        ordinary: '普通文案',
+        winning: '爆款文案',
+        ordinaryContent: '"这是一款手工制作的陶瓷杯，蓝色，适合喝咖啡。质量很好，欢迎购买。"',
+        winningTitle: '海洋之息：纯手工渐变蓝釉陶瓷咖啡杯 | 极简主义艺术礼品',
+        winningContent: '让清晨的第一口咖啡，沉浸在深邃的海洋色彩中。每一只杯子都由匠人历经 72 小时手工拉坯烧制，独特的流釉工艺确保您拥有世上独一无二的艺术品...',
+        tag1: '#手工艺术',
+        tag2: '#极简生活',
+        lowConversion: '转化率极低',
+        highConversion: '转化率提升 300%+'
+      },
+      features: {
+        title: '为什么选择 ListingCraft AI？',
+        subtitle: '我们结合了最先进的 LLM 技术与电商营销心理学。',
+        f1: {
+          title: '多平台优化',
+          description: '针对 Etsy, Amazon, Shopify 等主流电商平台进行深度优化，确保文案符合平台 SEO 规则。'
+        },
+        f2: {
+          title: '高转化率标题',
+          description: '利用 AI 分析数百万条爆款数据，为您生成点击率极高的产品标题。'
+        },
+        f3: {
+          title: '智能关键词提取',
+          description: '自动提取产品核心卖点并转化为精准的 SEO 标签，提升搜索排名。'
+        }
+      },
+      howItWorks: {
+        title: '简单三步，开启爆款之路',
+        subtitle: '无需复杂的指令，只需三步即可获得专业文案。',
+        s1: {
+          title: '输入产品信息',
+          description: '填写您的产品名称、核心卖点以及目标受众。'
+        },
+        s2: {
+          title: 'AI 智能生成',
+          description: 'Gemini AI 引擎根据平台算法实时生成多套文案方案。'
+        },
+        s3: {
+          title: '一键复制发布',
+          description: '预览并微调文案，一键复制到您的店铺后台。'
+        }
+      },
+      faq: {
+        title: '常见问题解答',
+        q1: {
+          q: 'ListingCraft AI 支持哪些语言？',
+          a: '目前我们支持中文、英文、日语、德语、法语等 20 多种主流语言的文案生成。'
+        },
+        q2: {
+          q: '生成的文案是否具有版权？',
+          a: '是的，AI 生成的文案完全归您所有，您可以自由用于商业用途。'
+        },
+        q3: {
+          q: '如何保证文案的独特性？',
+          a: '我们的模型会根据您提供的具体产品特征进行个性化创作，确保每一份文案都是独一无二的。'
+        }
+      },
+      footer: {
+        copy: '© 2026 ListingCraft AI. 为全球电商卖家提供动力。',
+        privacy: '隐私政策',
+        terms: '服务条款',
+        contact: '联系我们'
+      }
     }
   },
   en: {
@@ -144,7 +264,18 @@ export const translations: Record<string, any> = {
       loading: 'Loading...',
       reset: 'Reset',
       confirm: 'Confirm',
-      cancel: 'Cancel'
+      cancel: 'Cancel',
+      back: 'Back',
+      usageLimitTitle: 'Insufficient Credits',
+      usageLimitDesc: 'Your {plan} monthly generation limit has been reached ({usage}/{limit}). Please upgrade your plan to continue and support our work.',
+      upgradeNow: 'View Plans',
+      loginFirst: 'Please log in first',
+      missingParams: 'Please fill in required information',
+      systemError: 'System busy, please try again later',
+      saveSuccess: 'Automatically saved to history',
+      upgradeSuccessTitle: 'Upgrade Successful',
+      upgradeSuccessMsg: 'Welcome to Pro! Your usage credits have been reset.',
+      errorPrefix: 'Error occurred: '
     },
     sidebar: {
       copywriting: 'Copy Generator',
@@ -175,11 +306,23 @@ export const translations: Record<string, any> = {
       tagTitle: 'Recommended Tags',
       socialTitle: 'Social Media Copy',
       copy: 'Copy',
-      copied: 'Copied'
+      copied: 'Copied',
+      waitTitle: 'Waiting for Content',
+      waitDesc: 'Enter product parameters on the left and click generate to see AI magic here.',
+      loadingTitle: 'AI is crafting your copy...',
+      resultHeader: 'AI Generated Result',
+      platformFormat: '{platform} Format',
+      tones: {
+        professional: 'Professional & Reliable',
+        emotional: 'Emotional & Warm',
+        premium: 'Minimalist & Premium'
+      }
     },
     research: {
       title: 'Daily Market Insights',
       subtitle: 'AI-driven real-time trending products and search potential analysis',
+      lockedTitle: 'Market Insights Locked',
+      lockedDesc: 'Daily deep market research is an exclusive feature for Pro users. Upgrade to unlock global search trends and real-time competitor rankings.',
       reAnalyze: 'Re-analyze',
       timeframe: 'Timeframe',
       t1: '24h',
@@ -191,8 +334,18 @@ export const translations: Record<string, any> = {
       waitDesc: 'Select platform and period. AI will show you potential Top 10 categories and search trends.',
       syncTitle: 'Syncing {platform} platform data...',
       syncDesc: 'Comparing millions of search commands and conversion paths...',
-      macroView: 'Macro View: Category Trends',
-      microView: 'Micro View: Potential Best Sellers'
+      macroView: 'Macro View',
+      microView: 'Micro View',
+      macroTitle: 'Macro: Active Growth Categories',
+      microTitle: 'Micro: Top Selling Products',
+      lastUpdateLabel: 'Last Update:',
+      trafficDistribution: 'Traffic Heatmap',
+      trafficDesc: 'Based on global search engine and marketplace data',
+      volumeRank: 'Volume Rank',
+      aiReport: 'AI Market Intelligence',
+      overallActivity: 'Market Activity',
+      bullishStatus: 'Highly Bullish',
+      estSalesLabel: 'Est. Sales:'
     },
     keywords: {
       title: 'Keyword Expert Optimizer',
@@ -235,7 +388,12 @@ export const translations: Record<string, any> = {
       impactLow: 'Med',
       impactLabel: 'Impact',
       me: 'ME',
-      vs: 'VS AVG'
+      vs: 'VS AVG',
+      swotStrengths: 'Strengths',
+      swotWeaknesses: 'Weaknesses',
+      swotOpportunities: 'Opportunities',
+      swotThreats: 'Threats',
+      intelligenceScore: 'Intelligence Score'
     },
     pricing: {
       title: 'Choose Your Growth Engine',
@@ -248,12 +406,12 @@ export const translations: Record<string, any> = {
       starter: {
         name: 'Starter Plan',
         desc: 'Accelerate your winning product output',
-        features: ['50 AI generations per month', 'Deep keyword digging', 'Multi-platform trend comparison', 'Advanced competitor intelligence', 'Priority generation']
+        features: ['100 AI generations per month', 'Deep keyword digging', 'Multi-platform trend comparison', 'Advanced competitor intelligence', 'Priority generation']
       },
       pro: {
         name: 'Pro Plan',
         desc: 'Built for agencies and power sellers',
-        features: ['Unlimited AI generations', 'Full feature access (incl. Market Insights)', 'Exclusive AI E-com Consultant', 'Winning rate predictive model', '24/7 dedicated support']
+        features: ['Unlimited AI generations', 'Full feature access (incl. Market Insights)', 'Early access to Beta features', 'Winning rate predictive model', 'Priority technical support']
       },
       current: 'Current Plan',
       upgrade: 'Upgrade Now',
@@ -269,6 +427,88 @@ export const translations: Record<string, any> = {
       or: 'OR',
       terms: 'By logging in, you agree to our Terms of Service and Privacy Policy',
       failed: 'Login failed, please try again'
+    },
+    landing: {
+      nav: {
+        features: 'Features',
+        howItWorks: 'How it Works',
+        faq: 'FAQ',
+        login: 'Login',
+        tryFree: 'Try for Free'
+      },
+      hero: {
+        badge: 'Empowering Global Sellers',
+        titlePart1: 'Let Your Products Stand Out',
+        titlePart2: 'in Seconds',
+        subtitle: 'Professional AI E-commerce copy expert. Generate high-conversion titles, descriptions, and SEO tags just by entering product features.',
+        cta: 'Start Creating Now'
+      },
+      comparision: {
+        before: 'Before',
+        after: 'After AI Optimization',
+        ordinary: 'Ordinary Copy',
+        winning: 'Best Seller Copy',
+        ordinaryContent: '"Handmade ceramic mug, blue color, for coffee. Good quality, buy now."',
+        winningTitle: 'Ocean Breeze: Handmade Gradient Blue Glaze Ceramic Coffee Mug | Minimalist Art Gift',
+        winningContent: 'Let your first sip of morning coffee immerse in the deep colors of the ocean. Each mug is handcrafted by artisans over 72 hours...',
+        tag1: '#HandmadeArt',
+        tag2: '#MinimalistLife',
+        lowConversion: 'Low Conversion',
+        highConversion: 'Conversion Up 300%+'
+      },
+      features: {
+        title: 'Why ListingCraft AI?',
+        subtitle: 'Combining advanced LLM technology with e-commerce marketing psychology.',
+        f1: {
+          title: 'Platform Optimized',
+          description: 'Deep optimization for Etsy, Amazon, Shopify ensures copy meets platform SEO rules.'
+        },
+        f2: {
+          title: 'High Conversion Titles',
+          description: 'Generate high-click-through titles using AI analysis of millions of best-selling data points.'
+        },
+        f3: {
+          title: 'Smart Key Tags',
+          description: 'Extract core selling points into precise SEO tags to boost search rankings automatically.'
+        }
+      },
+      howItWorks: {
+        title: 'Three Simple Steps',
+        subtitle: 'Get professional copy in three easy steps, no complex prompts needed.',
+        s1: {
+          title: 'Enter Info',
+          description: 'Fill in product name, core selling points, and target audience.'
+        },
+        s2: {
+          title: 'AI Generation',
+          description: 'Gemini AI engine generates multiple styles based on platform algorithms.'
+        },
+        s3: {
+          title: 'One-Click Publish',
+          description: 'Preview, fine-tune, and copy to your store backend in one click.'
+        }
+      },
+      faq: {
+        title: 'Frequently Asked Questions',
+        q1: {
+          q: 'Which languages are supported?',
+          a: 'Currently supports English, Chinese, Japanese, German, French, and 20+ other major languages.'
+        },
+        q2: {
+          q: 'Do I own the copyright?',
+          a: 'Yes, all AI-generated copy belongs to you for commercial use.'
+        },
+        q3: {
+          q: 'Is the copy unique?',
+          a: 'Our models create personalized content based on your unique product features.'
+        }
+      },
+      footer: {
+        copy: '© 2026 ListingCraft AI. Empowering global sellers.',
+        privacy: 'Privacy Policy',
+        terms: 'Terms of Service',
+        contact: 'Contact Us'
+      }
     }
   }
 };

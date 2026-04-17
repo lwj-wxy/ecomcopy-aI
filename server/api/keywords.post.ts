@@ -9,10 +9,13 @@ export default defineEventHandler(async (event) => {
   }
 
   const body = await readBody(event);
+  const targetLang = body.language || '中文';
   
   const prompt = `
     你是一个专业的 SEO 和电商关键词专家。
     针对产品: "${body.productName}"，请进行深度关键词调研和优化建议。
+    
+    输出语言：${targetLang}
     
     请输出以下 JSON 格式：
     {
@@ -43,6 +46,7 @@ export default defineEventHandler(async (event) => {
     1. competition 是 0-1 之间的数字，1 代表竞争极大。
     2. score 是 0-100 的机会得分，越高越值得投入。
     3. 只返回 JSON 且必须符合结构。
+    4. 所有显示的文本内容（包括类目名、总结、理由等）必须使用指定的输出语言：${targetLang}。
   `;
 
   try {
@@ -55,7 +59,7 @@ export default defineEventHandler(async (event) => {
       body: JSON.stringify({
         model: "deepseek-chat",
         messages: [
-          { role: "system", content: "你是一个专业的电商 SEO 专家。只返回 JSON。" },
+          { role: "system", content: `你是一个专业的电商 SEO 专家。你必须以${targetLang}回答并只返回 JSON。` },
           { role: "user", content: prompt }
         ],
         response_format: { type: "json_object" },

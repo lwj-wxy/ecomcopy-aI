@@ -25,7 +25,9 @@ import {
   Info,
   RotateCcw,
   XCircle,
-  Briefcase
+  Briefcase,
+  Lock,
+  ArrowUpCircle
 } from 'lucide-vue-next';
 // OpenAI moved to server-side for security and to avoid CORS
 import { auth, db, handleFirestoreError, OperationType } from '~/lib/firebase';
@@ -133,12 +135,28 @@ const user = ref<any>(null);
 const userProfile = ref<any>(null);
 const authLoading = ref(true);
 
-const { locale, initLocale } = useLocale();
+const { locale, setLocale, initLocale } = useLocale();
 const t = computed(() => translations[locale.value]);
+const router = useRouter();
+
+const toneOptions = computed(() => [
+  { value: 'professional', label: t.value.copywriting.tones.professional },
+  { value: 'emotional', label: t.value.copywriting.tones.emotional },
+  { value: 'premium', label: t.value.copywriting.tones.premium }
+]);
+
+// Watch locale changes to sync with Firestore
+watch(locale, (newLocale) => {
+  if (user.value && userProfile.value && userProfile.value.locale !== newLocale) {
+    updateDoc(doc(db, 'users', user.value.uid), {
+      locale: newLocale
+    }).catch(e => console.error('Failed to sync locale to Firestore:', e));
+  }
+});
 
 const PLAN_LIMITS: Record<string, number> = {
   'free': 5,
-  'starter': 50,
+  'starter': 100,
   'pro': 999999
 };
 
@@ -166,19 +184,22 @@ const historyList = ref<any[]>([]);
 const keywordResult = ref<KeywordResult | null>(null);
 const keywordLoading = ref(false);
 const keywordSearchInput = ref('');
+const keywordLanguage = ref('中文');
 
 const competitorResult = ref<CompetitorResult | null>(null);
 const competitorLoading = ref(false);
 const competitorInput = ref({
   productName: '',
-  competitorInfo: ''
+  competitorInfo: '',
+  language: '中文'
 });
 
 const marketResearchResult = ref<MarketResearchResult | null>(null);
 const marketLoading = ref(false);
 const marketParams = ref({
   platform: 'Etsy',
-  timeframe: '7'
+  timeframe: '7',
+  language: '中文'
 });
 
 const params = ref({
@@ -186,7 +207,7 @@ const params = ref({
   productName: '',
   features: '',
   targetAudience: '年轻女性, 手工艺爱好者',
-  tone: '专业且可靠',
+  tone: 'professional',
   language: '中文'
 });
 
@@ -237,12 +258,19 @@ const fetchUserProfile = () => {
         if (user.value.email === '807301075@qq.com' || user.value.email === 'lwjwxy132308@gmail.com') {
           data.plan = 'pro';
         }
+
+        // Sync locale from Firestore to local
+        if (data.locale && data.locale !== locale.value) {
+          setLocale(data.locale);
+        }
+
         userProfile.value = data;
         
-        if (!data.plan || data.usage === undefined) {
+        if (!data.plan || data.usage === undefined || !data.locale) {
           updateDoc(doc(db, 'users', user.value.uid), {
             plan: data.plan || 'free',
-            usage: data.usage ?? 0
+            usage: data.usage ?? 0,
+            locale: data.locale || locale.value
           }).catch(() => {});
         }
       } else {
@@ -253,6 +281,7 @@ const fetchUserProfile = () => {
           role: 'user',
           plan: (user.value.email === '807301075@qq.com' || user.value.email === 'lwjwxy132308@gmail.com') ? 'pro' : 'free',
           usage: 0,
+          locale: locale.value,
           createdAt: serverTimestamp()
         };
         setDoc(doc(db, 'users', user.value.uid), defaultProfile).catch(() => {});
@@ -274,7 +303,7 @@ onMounted(() => {
   initLocale();
   // Handle Mock Payment Success
   const route = useRoute();
-  if (route.query.status === 'success' && route.query.mock_plan) {
+    if (route.query.status === 'success' && route.query.mock_plan) {
     const newPlan = route.query.mock_plan as string;
     if (user.value) {
       updateDoc(doc(db, 'users', user.value.uid), {
@@ -282,8 +311,8 @@ onMounted(() => {
         usage: 0 // Reset usage on upgrade for demo
       }).then(() => {
         ElNotification({
-          title: '升级成功',
-          message: `欢迎成为正式会员！您的基础额度已重置。`,
+          title: t.value.common.upgradeSuccessTitle,
+          message: t.value.common.upgradeSuccessMsg,
           type: 'success',
           duration: 5000
         });
@@ -316,17 +345,38 @@ const fillExample = (example: any) => {
   params.value.productName = example.name;
   params.value.features = example.features;
   params.value.targetAudience = example.audience;
-  ElMessage.success(`已载入示例：${example.name}`);
+};
+
+const showUsageLimitDialog = () => {
+  const currentPlan = userProfile.value?.plan || 'free';
+  const currentUsage = userProfile.value?.usage || 0;
+  const limit = PLAN_LIMITS[currentPlan];
+  const planName = PLAN_NAMES.value[currentPlan];
+
+  ElMessageBox.confirm(
+    t.value.common.usageLimitDesc
+      .replace('{plan}', planName)
+      .replace('{usage}', currentUsage.toString())
+      .replace('{limit}', limit.toString()),
+    t.value.common.usageLimitTitle,
+    {
+      confirmButtonText: t.value.common.upgradeNow,
+      cancelButtonText: t.value.common.cancel,
+      type: 'warning',
+    }
+  ).then(() => {
+    navigateTo('/pricing');
+  }).catch(() => {});
 };
 
 const handleGenerate = async () => {
   if (!user.value) {
-    ElMessage.warning('请先登录');
+    ElMessage.warning(t.value.common.loginFirst);
     return;
   }
   
   if (!params.value.productName || !params.value.features) {
-    ElMessage.warning('请填写产品名称和核心卖点');
+    ElMessage.warning(t.value.common.missingParams);
     return;
   }
 
@@ -336,17 +386,7 @@ const handleGenerate = async () => {
   const limit = PLAN_LIMITS[currentPlan];
 
   if (currentUsage >= limit) {
-    ElMessageBox.confirm(
-      `您的${PLAN_NAMES[currentPlan]}当月生成额度已用完 (${currentUsage}/${limit})。请升级套餐以后继续使用，支持我们的开发。`,
-      '额度不足',
-      {
-        confirmButtonText: '查看套餐',
-        cancelButtonText: '取消',
-        type: 'warning',
-      }
-    ).then(() => {
-      navigateTo('/pricing');
-    }).catch(() => {});
+    showUsageLimitDialog();
     return;
   }
 
@@ -456,7 +496,7 @@ const handleGenerate = async () => {
           usage: increment(1)
         });
         
-        ElMessage.success('已自动保存到历史记录');
+        ElMessage.success(t.value.common.saveSuccess);
       }
     } catch (dbError: any) {
       handleFirestoreError(dbError, OperationType.CREATE, 'listings');
@@ -464,7 +504,7 @@ const handleGenerate = async () => {
 
   } catch (err: any) {
     console.error('Generation failure:', err);
-    ElMessage.error('发生错误: ' + (err.message || '系统繁忙'));
+    ElMessage.error(t.value.common.errorPrefix + (err.message || t.value.common.systemError));
   } finally {
     if (drainTimer) clearInterval(drainTimer);
     loading.value = false;
@@ -473,18 +513,18 @@ const handleGenerate = async () => {
 
 const handleGenerateKeywords = async () => {
   if (!user.value) {
-    ElMessage.warning('请先登录');
+    ElMessage.warning(t.value.common.loginFirst);
     return;
   }
   
   if (!keywordSearchInput.value) {
-    ElMessage.warning('请输入要优化的产品名称或种子词');
+    ElMessage.warning(t.value.common.missingParams);
     return;
   }
 
   const currentPlan = userProfile.value?.plan || 'free';
   if ((userProfile.value?.usage || 0) >= PLAN_LIMITS[currentPlan]) {
-    ElMessage.warning('由于额度限制，关键词优化暂与文案生成共用额度且您已用完。');
+    showUsageLimitDialog();
     return;
   }
 
@@ -495,7 +535,10 @@ const handleGenerateKeywords = async () => {
     const response = await fetch('/api/keywords', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ productName: keywordSearchInput.value })
+      body: JSON.stringify({ 
+        productName: keywordSearchInput.value,
+        language: keywordLanguage.value
+      })
     });
 
     if (!response.ok) throw new Error('网络请求失败');
@@ -555,18 +598,18 @@ const handleGenerateKeywords = async () => {
 
 const handleAnalyzeCompetitor = async () => {
   if (!user.value) {
-    ElMessage.warning('请先登录');
+    ElMessage.warning(t.value.common.loginFirst);
     return;
   }
   
   if (!competitorInput.value.productName || !competitorInput.value.competitorInfo) {
-    ElMessage.warning('请输入产品信息和竞争对手/痛点信息');
+    ElMessage.warning(t.value.common.missingParams);
     return;
   }
 
   const currentPlan = userProfile.value?.plan || 'free';
   if ((userProfile.value?.usage || 0) >= PLAN_LIMITS[currentPlan]) {
-    ElMessage.warning('额度已用完，请升级套餐。');
+    showUsageLimitDialog();
     return;
   }
 
@@ -626,18 +669,22 @@ const useKeywordInCopy = (keyword: string) => {
     params.value.features = keyword;
   }
   activeTab.value = 'copywriting';
-  ElMessage.success('关键词已成功引用至文案生成页');
 };
 
 const handleMarketResearch = async () => {
   if (!user.value) {
-    ElMessage.warning('请先登录');
+    ElMessage.warning(t.value.common.loginFirst);
     return;
   }
 
   const currentPlan = userProfile.value?.plan || 'free';
+  if (currentPlan !== 'pro') {
+    showUsageLimitDialog();
+    return;
+  }
+
   if ((userProfile.value?.usage || 0) >= PLAN_LIMITS[currentPlan]) {
-    ElMessage.warning('额度限制，请升级套餐。');
+    showUsageLimitDialog();
     return;
   }
 
@@ -648,7 +695,10 @@ const handleMarketResearch = async () => {
     const response = await fetch('/api/market-research', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(marketParams.value)
+      body: JSON.stringify({
+        ...marketParams.value,
+        locale: locale.value
+      })
     });
 
     if (!response.ok) throw new Error('调研请求失败');
@@ -676,11 +726,72 @@ const handleMarketResearch = async () => {
 
     if (fullContent) {
       try {
-        marketResearchResult.value = JSON.parse(fullContent);
+        const parsed = JSON.parse(fullContent);
+        const normalized: any = {};
+        Object.keys(parsed).forEach(k => normalized[k.toLowerCase()] = parsed[k]);
+        
+        const rawCategories = normalized.categories || parsed.categories || [];
+        const normalizedCategories = Array.isArray(rawCategories) ? rawCategories.map((c: any) => ({
+          category: c.category || c.Category || '',
+          searchVolume: Number(c.searchVolume || c.searchvolume || c.SearchVolume || 0) || 0,
+          growth: Number(c.growth || c.Growth || 0) || 0
+        })) : [];
+
+        const rawProducts = normalized.products || parsed.products || [];
+        const normalizedProducts = Array.isArray(rawProducts) ? rawProducts.map((p: any) => ({
+          rank: Number(p.rank || p.Rank || 0) || 0,
+          name: p.name || p.Name || '',
+          price: p.price || p.Price || '',
+          sales: p.sales || p.Sales || '',
+          hotpoint: p.hotpoint || p.Hotpoint || '',
+          thumbnail: p.thumbnail || p.Thumbnail || ''
+        })) : [];
+
+        marketResearchResult.value = {
+          lastUpdate: normalized.lastupdate || parsed.lastUpdate || new Date().toISOString().split('T')[0],
+          platform: normalized.platform || parsed.platform || marketParams.value.platform,
+          categories: normalizedCategories,
+          products: normalizedProducts,
+          insights: normalized.insights || parsed.insights || []
+        };
+        
         await updateDoc(doc(db, 'users', user.value.uid), { usage: increment(1) });
       } catch (e) {
         const jsonMatch = fullContent.match(/\{[\s\S]*\}/);
-        if (jsonMatch) marketResearchResult.value = JSON.parse(jsonMatch[0]);
+        if (jsonMatch) {
+          try {
+            const innerParsed = JSON.parse(jsonMatch[0]);
+            const innerNormalized: any = {};
+            Object.keys(innerParsed).forEach(k => innerNormalized[k.toLowerCase()] = innerParsed[k]);
+            
+            const rawCategories = innerNormalized.categories || innerParsed.categories || [];
+            const normalizedCategories = Array.isArray(rawCategories) ? rawCategories.map((c: any) => ({
+              category: c.category || c.Category || '',
+              searchVolume: Number(c.searchVolume || c.searchvolume || c.SearchVolume || 0) || 0,
+              growth: Number(c.growth || c.Growth || 0) || 0
+            })) : [];
+
+            const rawProducts = innerNormalized.products || innerParsed.products || [];
+            const normalizedProducts = Array.isArray(rawProducts) ? rawProducts.map((p: any) => ({
+              rank: Number(p.rank || p.Rank || 0) || 0,
+              name: p.name || p.Name || '',
+              price: p.price || p.Price || '',
+              sales: p.sales || p.Sales || '',
+              hotpoint: p.hotpoint || p.Hotpoint || '',
+              thumbnail: p.thumbnail || p.Thumbnail || ''
+            })) : [];
+
+            marketResearchResult.value = {
+              lastUpdate: innerNormalized.lastupdate || innerParsed.lastUpdate || new Date().toISOString().split('T')[0],
+              platform: innerNormalized.platform || innerParsed.platform || marketParams.value.platform,
+              categories: normalizedCategories,
+              products: normalizedProducts,
+              insights: innerNormalized.insights || innerParsed.insights || []
+            };
+          } catch (e2) {
+            console.error('Failed to parse fallback JSON', e2);
+          }
+        }
       }
     }
   } catch (err: any) {
@@ -691,9 +802,15 @@ const handleMarketResearch = async () => {
 };
 
 const copyToClipboard = (text: string, field: string) => {
-  copiedField.value = field;
-  ElMessage.success('已复制到剪贴板');
-  setTimeout(() => copiedField.value = null, 2000);
+  if (!text) return;
+  navigator.clipboard.writeText(text).then(() => {
+    copiedField.value = field;
+    ElMessage.success(t.value.copywriting.copySuccess);
+    setTimeout(() => copiedField.value = null, 2000);
+  }).catch(err => {
+    console.error('Copy failed:', err);
+    ElMessage.error(locale.value === 'zh' ? '复制失败' : 'Copy failed');
+  });
 };
 </script>
 
@@ -714,9 +831,34 @@ const copyToClipboard = (text: string, field: string) => {
       <div v-if="user" class="flex items-center gap-6">
         <LanguageSwitcher />
         <div class="h-8 w-px bg-border-theme"></div>
-        <div class="flex items-center gap-2 text-text-main font-bold">
-          <Sparkles class="h-5 w-5 text-primary" />
-          <span class="text-lg tracking-tight">EcomCopy <span class="text-primary">AI</span></span>
+        
+        <!-- User Info & Logout -->
+        <div class="flex items-center gap-4">
+          <div class="flex items-center gap-2">
+            <img 
+              v-if="user?.photoURL" 
+              :src="user.photoURL" 
+              class="h-8 w-8 rounded-full border border-border-theme"
+              referrerPolicy="no-referrer"
+            />
+            <div 
+              v-else 
+              class="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm"
+            >
+              {{ user?.displayName?.charAt(0) || 'U' }}
+            </div>
+            <div class="hidden md:block text-left">
+              <div class="text-xs font-bold text-text-main truncate max-w-[120px]">{{ user?.displayName || (locale === 'zh' ? '用户' : 'User') }}</div>
+              <div v-if="userProfile" class="text-[10px] text-primary font-bold uppercase">{{ PLAN_NAMES[userProfile.plan] }}</div>
+            </div>
+          </div>
+          <button 
+            @click="logout"
+            class="p-2 hover:bg-gray-100 rounded-lg text-gray-400 hover:text-red-500 transition-all flex items-center gap-2"
+            :title="t.common.logout"
+          >
+            <LogOut class="h-4 w-4" />
+          </button>
         </div>
       </div>
       
@@ -772,33 +914,35 @@ const copyToClipboard = (text: string, field: string) => {
         </div>
         
         <div class="text-[12px] font-semibold uppercase tracking-wider text-text-muted mt-6 mb-2 px-2">{{ t.sidebar.recent }}</div>
-        <div v-if="historyList.length > 0" class="space-y-1">
-          <div 
-            v-for="item in historyList" 
-            :key="item.id"
-            @click="result = item; activeTab = 'copywriting'"
-            class="group px-3 py-2 rounded-md text-xs text-text-main hover:bg-gray-100 cursor-pointer transition-colors flex items-center justify-between gap-2"
-          >
-            <div class="flex items-center gap-2 truncate">
-              <History class="h-3 w-3 flex-shrink-0 text-gray-400" />
-              <span class="truncate">{{ item.productName }}</span>
-            </div>
-            <button 
-              @click.stop="deleteHistoryItem(item.id)"
-              class="opacity-0 group-hover:opacity-100 p-1 hover:text-red-500 transition-all"
+        <div class="flex-1 overflow-y-auto min-h-0 pr-1 -mr-1">
+          <div v-if="historyList.length > 0" class="space-y-1">
+            <div 
+              v-for="item in historyList" 
+              :key="item.id"
+              @click="result = item; activeTab = 'copywriting'"
+              class="group px-3 py-2 rounded-md text-xs text-text-main hover:bg-gray-100 cursor-pointer transition-colors flex items-center justify-between gap-2"
             >
-              <Trash2 class="h-3 w-3" />
-            </button>
+              <div class="flex items-center gap-2 truncate">
+                <History class="h-3 w-3 flex-shrink-0 text-gray-400" />
+                <span class="truncate">{{ item.productName }}</span>
+              </div>
+              <button 
+                @click.stop="deleteHistoryItem(item.id)"
+                class="opacity-0 group-hover:opacity-100 p-1 hover:text-red-500 transition-all"
+              >
+                <Trash2 class="h-3 w-3" />
+              </button>
+            </div>
+          </div>
+          <div v-else class="px-3 py-2 text-xs text-gray-400 italic">
+            {{ t.sidebar.noHistory }}
           </div>
         </div>
-        <div v-else class="px-3 py-2 text-xs text-gray-400 italic">
-          {{ t.sidebar.noHistory }}
-        </div>
 
-        <!-- Subscription & Profile Footer -->
-        <div class="mt-auto pt-6 border-t border-border-theme space-y-4">
+        <!-- Subscription Footer -->
+        <div v-if="userProfile" class="mt-auto pt-6 border-t border-border-theme">
           <!-- Subscription Card -->
-          <div v-if="userProfile" class="bg-primary/5 rounded-xl p-4 border border-primary/10 mx-2">
+          <div class="bg-primary/5 rounded-xl p-4 border border-primary/10 mx-2">
             <div class="flex items-center justify-between mb-2">
               <span class="text-[10px] font-bold text-primary uppercase">{{ t.common.currentPlan }}: {{ PLAN_NAMES[userProfile.plan] }}</span>
               <Gem v-if="userProfile.plan !== 'free'" class="h-3 w-3 text-primary" />
@@ -818,32 +962,6 @@ const copyToClipboard = (text: string, field: string) => {
               class="w-full py-2 bg-primary text-white text-[11px] font-bold rounded-lg hover:bg-primary-hover transition-all shadow-sm flex items-center justify-center gap-1.5"
             >
               <Zap class="h-3 w-3" /> {{ t.common.upgrade }}
-            </button>
-          </div>
-
-          <div class="flex items-center gap-3 px-2">
-            <img 
-              v-if="user?.photoURL" 
-              :src="user.photoURL" 
-              class="h-8 w-8 rounded-full border border-border-theme"
-              referrerPolicy="no-referrer"
-            />
-            <div 
-              v-else 
-              class="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs"
-            >
-              {{ user?.displayName?.charAt(0) || 'U' }}
-            </div>
-            <div class="flex-1 min-w-0">
-              <div class="text-[11px] font-bold text-text-main truncate">{{ user?.displayName || (locale === 'zh' ? '用户' : 'User') }}</div>
-              <div class="text-[9px] text-text-muted truncate">{{ user?.email }}</div>
-            </div>
-            <button 
-              @click="logout"
-              class="p-1.5 hover:bg-gray-100 rounded-lg text-gray-400 hover:text-red-500 transition-all"
-              :title="t.common.logout"
-            >
-              <LogOut class="h-4 w-4" />
             </button>
           </div>
         </div>
@@ -908,16 +1026,9 @@ const copyToClipboard = (text: string, field: string) => {
                 <div class="space-y-1.5">
                   <label class="text-[13px] font-medium text-text-muted">{{ t.copywriting.tone }}</label>
                   <select v-model="params.tone" class="w-full h-10 border border-border-theme rounded-md px-3 text-sm">
-                    <template v-if="locale === 'zh'">
-                      <option value="专业且可靠">专业且可靠</option>
-                      <option value="感性且温馨">感性且温馨</option>
-                      <option value="极简且高端">极简且高端</option>
-                    </template>
-                    <template v-else>
-                      <option value="Professional & Reliable">Professional & Reliable</option>
-                      <option value="Emotional & Warm">Emotional & Warm</option>
-                      <option value="Minimalist & Premium">Minimalist & Premium</option>
-                    </template>
+                    <option v-for="opt in toneOptions" :key="opt.value" :value="opt.value">
+                      {{ opt.label }}
+                    </option>
                   </select>
                 </div>
                 <div class="space-y-1.5">
@@ -949,7 +1060,6 @@ const copyToClipboard = (text: string, field: string) => {
                 <template v-else>{{ t.copywriting.generate }}</template>
               </button>
             </div>
-            </div>
           </div>
 
           <!-- Preview Panel -->
@@ -957,16 +1067,16 @@ const copyToClipboard = (text: string, field: string) => {
             <!-- Initial State -->
             <div v-if="!result && !loading" class="h-full flex flex-col items-center justify-center text-center p-12 bg-bg-card rounded-xl border border-dashed border-border-theme">
               <Sparkles class="h-12 w-12 text-gray-200 mb-4" />
-              <h3 class="text-lg font-semibold text-text-main mb-1">等待生成</h3>
+              <h3 class="text-lg font-semibold text-text-main mb-1">{{ t.copywriting.waitTitle }}</h3>
               <p class="text-sm text-text-muted max-w-[280px]">
-                在左侧输入产品参数并点击生成，AI 文案将在此处实时展示。
+                {{ t.copywriting.waitDesc }}
               </p>
             </div>
 
             <!-- Deep Thinking / Initial Loading State -->
             <div v-else-if="loading && (!result || !result.title)" class="h-full flex flex-col items-center justify-center space-y-4 p-12 bg-bg-card rounded-xl border border-border-theme">
               <Loader2 class="h-8 w-8 text-primary animate-spin" />
-              <p class="font-medium text-text-main animate-pulse">AI 正在构思您的文案...</p>
+              <p class="font-medium text-text-main animate-pulse">{{ t.copywriting.loadingTitle }}</p>
             </div>
 
             <!-- Streaming / Final Result State -->
@@ -974,19 +1084,19 @@ const copyToClipboard = (text: string, field: string) => {
               <div class="bg-bg-card border border-border-theme rounded-xl shadow-[0_1px_3px_rgba(0,0,0,0.05)] overflow-hidden">
                 <div class="py-4 px-6 border-b border-border-theme flex flex-row items-center justify-between bg-gray-50/50">
                   <div class="flex items-center gap-2">
-                    <h2 class="text-base font-semibold">AI 生成结果</h2>
+                    <h2 class="text-base font-semibold">{{ t.copywriting.resultHeader }}</h2>
                     <Loader2 v-if="loading" class="h-3 w-3 animate-spin text-primary" />
                     <button 
                       v-if="result && !loading" 
                       @click="result = null"
                       class="ml-2 p-1 hover:bg-gray-200 rounded transition-colors"
-                      title="重置"
+                      :title="t.common.reset"
                     >
                       <RotateCcw class="h-3 w-3 text-gray-500" />
                     </button>
                   </div>
                   <span class="bg-primary/10 text-primary border border-primary/20 rounded-[4px] px-2 py-0.5 text-[11px] font-bold uppercase">
-                    {{ params.platform }} 格式
+                    {{ t.copywriting.platformFormat.replace('{platform}', params.platform) }}
                   </span>
                 </div>
                 <div class="p-6 space-y-6">
@@ -1055,7 +1165,35 @@ const copyToClipboard = (text: string, field: string) => {
           </div>
         </div>
 
-        <div v-else-if="activeTab === 'research'" class="h-full flex flex-col gap-6 overflow-hidden">
+        <div v-else-if="activeTab === 'research'" class="h-full flex flex-col gap-6 overflow-hidden relative">
+          <!-- PAYWALL MASK -->
+          <div v-if="userProfile?.plan !== 'pro'" class="absolute inset-0 z-[20] flex items-center justify-center p-4">
+            <div class="absolute inset-0 bg-white/60 backdrop-blur-[6px]"></div>
+            <div class="relative bg-white p-10 md:p-12 rounded-[40px] border border-border-theme shadow-2xl w-full max-w-[480px] text-center space-y-8 animate-in fade-in zoom-in duration-500 overflow-hidden">
+              <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-orange-500 to-amber-500"></div>
+              <div class="h-20 w-20 bg-orange-50 rounded-3xl flex items-center justify-center mx-auto shadow-inner">
+                <Lock class="h-10 w-10 text-orange-500" />
+              </div>
+              <div class="space-y-4">
+                <h2 class="text-3xl font-extrabold text-gray-900 tracking-tight leading-tight">
+                  {{ t.research.lockedTitle }}
+                </h2>
+                <p class="text-sm text-gray-500 leading-relaxed max-w-[320px] mx-auto">
+                  {{ t.research.lockedDesc }}
+                </p>
+              </div>
+              <div class="pt-4 flex justify-center">
+                <button 
+                  @click="router.push('/pricing')"
+                  class="w-full h-14 bg-gradient-to-r from-orange-500 to-amber-500 text-white text-lg font-bold rounded-2xl shadow-xl shadow-orange-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3 flex-shrink-0"
+                >
+                  <ArrowUpCircle class="h-6 w-6" />
+                  {{ t.common.upgradeNow }}
+                </button>
+              </div>
+            </div>
+          </div>
+
           <div class="flex-shrink-0 flex items-center justify-between">
             <div>
               <h2 class="text-xl font-bold text-text-main flex items-center gap-2">
@@ -1084,6 +1222,17 @@ const copyToClipboard = (text: string, field: string) => {
                   <option value="Amazon">Amazon</option>
                   <option value="Shopify">Shopify</option>
                   <option value="TikTok Shop">TikTok Shop</option>
+                  <option value="eBay">eBay</option>
+                </select>
+              </div>
+
+              <div class="space-y-1.5">
+                <label class="text-[13px] font-medium text-text-muted">{{ t.copywriting.language }}</label>
+                <select v-model="marketParams.language" class="w-full h-10 border border-border-theme rounded-md px-3 text-sm">
+                  <option value="中文">{{ locale === 'zh' ? '中文 (Simplified)' : 'Chinese' }}</option>
+                  <option value="English">{{ locale === 'zh' ? '英文 (English)' : 'English' }}</option>
+                  <option value="German">{{ locale === 'zh' ? '德语 (German)' : 'German' }}</option>
+                  <option value="Japanese">{{ locale === 'zh' ? '日语 (Japanese)' : 'Japanese' }}</option>
                 </select>
               </div>
               <div class="space-y-1.5">
@@ -1150,19 +1299,19 @@ const copyToClipboard = (text: string, field: string) => {
               <div class="flex items-center justify-between px-2">
                 <div class="flex items-center gap-2">
                   <div class="w-1.5 h-6 bg-primary rounded-full"></div>
-                  <h3 class="font-bold text-lg text-text-main">宏观：本期活跃增长品类</h3>
+                  <h3 class="font-bold text-lg text-text-main">{{ t.research.macroTitle }}</h3>
                 </div>
-                <div class="text-[10px] font-mono text-gray-400 italic">Last Update: {{ marketResearchResult.lastUpdate }}</div>
+                <div class="text-[10px] font-mono text-gray-400 italic">{{ t.research.lastUpdateLabel }} {{ marketResearchResult.lastUpdate }}</div>
               </div>
               
               <div class="grid grid-cols-[1fr_360px] gap-8">
                 <div class="bg-white p-8 rounded-3xl border border-border-theme shadow-sm relative overflow-hidden">
                   <div class="flex items-center justify-between mb-8">
                     <div>
-                      <h4 class="text-sm font-bold text-gray-900 mb-1">流量热度分布</h4>
-                      <p class="text-[10px] text-gray-400 italic">基于各搜索引擎与平台站内搜索总量</p>
+                      <h4 class="text-sm font-bold text-gray-900 mb-1">{{ t.research.trafficDistribution }}</h4>
+                      <p class="text-[10px] text-gray-400 italic">{{ t.research.trafficDesc }}</p>
                     </div>
-                    <span class="text-[10px] font-mono font-bold text-primary bg-primary/5 px-2 py-1 rounded">Volume Rank</span>
+                    <span class="text-[10px] font-mono font-bold text-primary bg-primary/5 px-2 py-1 rounded">{{ t.research.volumeRank }}</span>
                   </div>
                   <MarketChart :data="marketResearchResult.categories" />
                 </div>
@@ -1170,7 +1319,7 @@ const copyToClipboard = (text: string, field: string) => {
                 <div class="bg-[#1e293b] text-white p-6 rounded-3xl shadow-xl flex flex-col">
                   <h3 class="text-sm font-bold flex items-center gap-2 mb-6">
                     <Sparkles class="h-4 w-4 text-amber-400" />
-                    AI 趋势洞察报告
+                    {{ t.research.aiReport }}
                   </h3>
                   <div class="space-y-6 flex-1">
                     <div v-for="(insight, idx) in marketResearchResult.insights" :key="idx" class="relative pl-8">
@@ -1183,8 +1332,8 @@ const copyToClipboard = (text: string, field: string) => {
                       <TrendingUp class="h-5 w-5 text-green-400" />
                     </div>
                     <div>
-                      <div class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">总体活跃度</div>
-                      <div class="text-sm font-bold text-white">显著上涨 (Highly Bullish)</div>
+                      <div class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{{ t.research.overallActivity }}</div>
+                      <div class="text-sm font-bold text-white">{{ t.research.bullishStatus }}</div>
                     </div>
                   </div>
                 </div>
@@ -1195,7 +1344,7 @@ const copyToClipboard = (text: string, field: string) => {
             <div class="space-y-4 pb-12">
               <div class="flex items-center gap-2 px-2">
                 <div class="w-1.5 h-6 bg-orange-500 rounded-full"></div>
-                <h3 class="font-bold text-lg text-text-main">微观：当前热销单品图鉴</h3>
+                <h3 class="font-bold text-lg text-text-main">{{ t.research.microTitle }}</h3>
               </div>
               
               <div class="grid grid-cols-2 gap-6">
@@ -1206,12 +1355,21 @@ const copyToClipboard = (text: string, field: string) => {
                       #{{ p.rank }}
                     </div>
                   </div>
-                  <div class="flex flex-col justify-between py-1 flex-1">
+                  <div class="flex flex-col justify-between py-1 flex-1 relative group/copy">
                     <div>
-                      <h4 class="text-sm font-bold text-gray-900 group-hover:text-orange-600 transition-colors line-clamp-1 mb-1">{{ p.name }}</h4>
+                      <div class="flex items-center justify-between">
+                        <h4 class="text-sm font-bold text-gray-900 group-hover:text-orange-600 transition-colors line-clamp-1 mb-1">{{ p.name }}</h4>
+                        <button 
+                          @click.stop="copyToClipboard(p.name, 'mp-' + p.rank)"
+                          class="opacity-0 group-hover/copy:opacity-100 p-1 hover:text-primary transition-all ml-1"
+                          :title="t.copywriting.copy"
+                        >
+                          <Copy class="h-3 w-3" />
+                        </button>
+                      </div>
                       <div class="flex items-center gap-3">
                         <span class="text-xs font-mono font-bold text-gray-900">{{ p.price }}</span>
-                        <span class="text-[10px] text-gray-400 font-medium">Est. Sales: <span class="text-text-main">{{ p.sales }}</span></span>
+                        <span class="text-[10px] text-gray-400 font-medium">{{ t.research.estSalesLabel }} <span class="text-text-main">{{ p.sales }}</span></span>
                       </div>
                     </div>
                     <div class="pt-2">
@@ -1235,6 +1393,14 @@ const copyToClipboard = (text: string, field: string) => {
               <p class="text-sm text-text-muted">{{ t.keywords.subtitle }}</p>
             </div>
             <div class="flex items-center gap-3">
+              <div class="space-y-0.5 mr-2">
+                <select v-model="keywordLanguage" class="h-10 border border-border-theme rounded-lg px-3 text-sm bg-white outline-none focus:ring-2 focus:ring-primary/20 transition-all font-medium">
+                  <option value="中文">{{ locale === 'zh' ? '结果: 中文' : 'Output: Chinese' }}</option>
+                  <option value="英文">{{ locale === 'zh' ? '结果: 英文' : 'Output: English' }}</option>
+                  <option value="德语">{{ locale === 'zh' ? '结果: 德语' : 'Output: German' }}</option>
+                  <option value="日语">{{ locale === 'zh' ? '结果: 日语' : 'Output: Japanese' }}</option>
+                </select>
+              </div>
               <div class="relative w-[300px]">
                 <Search class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <input 
@@ -1417,6 +1583,17 @@ const copyToClipboard = (text: string, field: string) => {
                     class="w-full h-32 p-4 bg-gray-50 border border-border-theme rounded-xl outline-none focus:ring-2 focus:ring-primary/20 transition-all font-medium resize-none"
                   ></textarea>
                 </div>
+                <div class="space-y-2">
+                  <label class="text-sm font-bold text-gray-700 flex items-center gap-2">
+                    <Globe class="h-4 w-4" /> {{ t.copywriting.language }}
+                  </label>
+                  <select v-model="competitorInput.language" class="w-full h-12 px-4 bg-gray-50 border border-border-theme rounded-xl outline-none focus:ring-2 focus:ring-primary/20 transition-all font-medium">
+                    <option value="中文">{{ locale === 'zh' ? '报告语言: 中文 (Simplified)' : 'Output: Chinese' }}</option>
+                    <option value="英文">{{ locale === 'zh' ? '报告语言: 英文 (English)' : 'Output: English' }}</option>
+                    <option value="德语">{{ locale === 'zh' ? '报告语言: 德语 (German)' : 'Output: German' }}</option>
+                    <option value="日语">{{ locale === 'zh' ? '报告语言: 日语 (Japanese)' : 'Output: Japanese' }}</option>
+                  </select>
+                </div>
               </div>
               <button 
                 @click="handleAnalyzeCompetitor"
@@ -1454,7 +1631,7 @@ const copyToClipboard = (text: string, field: string) => {
             <!-- Top Score Overview -->
             <div class="bg-[#141414] text-white p-8 rounded-3xl flex items-center justify-between border-2 border-primary">
               <div class="space-y-1">
-                <div class="text-[10px] font-mono opacity-60 uppercase tracking-widest italic">Intelligence Score</div>
+                <div class="text-[10px] font-mono opacity-60 uppercase tracking-widest italic">{{ t.competitor.intelligenceScore }}</div>
                 <h3 class="text-2xl font-bold serif italic">{{ t.competitor.title }}</h3>
               </div>
               <div class="flex items-center gap-12">
@@ -1515,7 +1692,16 @@ const copyToClipboard = (text: string, field: string) => {
                   <div class="grid grid-cols-1 gap-4">
                     <div v-for="s in competitorResult.strategies" :key="s.title" class="bg-white p-5 rounded-2xl border border-border-theme hover:border-primary transition-all group">
                       <div class="flex justify-between items-start mb-2">
-                        <h4 class="font-bold text-gray-900 group-hover:text-primary transition-colors">{{ s.title }}</h4>
+                        <div class="flex items-center gap-2">
+                          <h4 class="font-bold text-gray-900 group-hover:text-primary transition-colors">{{ s.title }}</h4>
+                          <button 
+                            @click.stop="copyToClipboard(s.action, 'cs-' + s.title)"
+                            class="opacity-0 group-hover:opacity-100 p-1 hover:text-primary transition-all"
+                            :title="t.copywriting.copy"
+                          >
+                            <Copy class="h-3 w-3" />
+                          </button>
+                        </div>
                         <span :class="['text-[10px] font-bold px-2 py-0.5 rounded uppercase', s.impact === '高' || s.impact === 'High' ? 'bg-red-50 text-red-500' : 'bg-blue-50 text-blue-500']">
                           {{ s.impact === '高' ? t.competitor.impactHigh : (s.impact === '中' ? t.competitor.impactLow : s.impact) }} {{ t.competitor.impactLabel }}
                         </span>
@@ -1533,38 +1719,62 @@ const copyToClipboard = (text: string, field: string) => {
                 </h3>
                 <div class="space-y-6">
                   <div class="space-y-3">
-                    <div class="text-[10px] font-bold text-green-600 uppercase tracking-widest border-b border-green-100 pb-1">Strengths / 优势</div>
+                    <div class="text-[10px] font-bold text-green-600 uppercase tracking-widest border-b border-green-100 pb-1">{{ t.competitor.swotStrengths }}</div>
                     <ul class="text-xs text-gray-600 space-y-2">
-                      <li v-for="s in competitorResult.swot.strengths" :key="s" class="flex items-start gap-2">
+                      <li v-for="s in competitorResult.swot.strengths" :key="s" class="flex items-start gap-2 group/swot">
                         <div class="w-1.5 h-1.5 bg-green-500 rounded-full mt-1 flex-shrink-0"></div>
-                        {{ s }}
+                        <span class="flex-1">{{ s }}</span>
+                        <button 
+                          @click.stop="copyToClipboard(s, 'swot-s')"
+                          class="opacity-0 group-hover/swot:opacity-100 p-1 hover:text-primary transition-all"
+                        >
+                          <Copy class="h-3 w-3" />
+                        </button>
                       </li>
                     </ul>
                   </div>
                   <div class="space-y-3">
-                    <div class="text-[10px] font-bold text-red-600 uppercase tracking-widest border-b border-red-100 pb-1">Weaknesses / 劣势</div>
+                    <div class="text-[10px] font-bold text-red-600 uppercase tracking-widest border-b border-red-100 pb-1">{{ t.competitor.swotWeaknesses }}</div>
                     <ul class="text-xs text-gray-600 space-y-2">
-                      <li v-for="w in competitorResult.swot.weaknesses" :key="w" class="flex items-start gap-2">
+                      <li v-for="w in competitorResult.swot.weaknesses" :key="w" class="flex items-start gap-2 group/swot">
                         <div class="w-1.5 h-1.5 bg-red-500 rounded-full mt-1 flex-shrink-0"></div>
-                        {{ w }}
+                        <span class="flex-1">{{ w }}</span>
+                        <button 
+                          @click.stop="copyToClipboard(w, 'swot-w')"
+                          class="opacity-0 group-hover/swot:opacity-100 p-1 hover:text-primary transition-all"
+                        >
+                          <Copy class="h-3 w-3" />
+                        </button>
                       </li>
                     </ul>
                   </div>
                   <div class="space-y-3">
-                    <div class="text-[10px] font-bold text-blue-600 uppercase tracking-widest border-b border-blue-100 pb-1">Opportunities / 机会</div>
+                    <div class="text-[10px] font-bold text-blue-600 uppercase tracking-widest border-b border-blue-100 pb-1">{{ t.competitor.swotOpportunities }}</div>
                     <ul class="text-xs text-gray-600 space-y-2">
-                      <li v-for="o in competitorResult.swot.opportunities" :key="o" class="flex items-start gap-2">
+                      <li v-for="o in competitorResult.swot.opportunities" :key="o" class="flex items-start gap-2 group/swot">
                         <div class="w-1.5 h-1.5 bg-blue-500 rounded-full mt-1 flex-shrink-0"></div>
-                        {{ o }}
+                        <span class="flex-1">{{ o }}</span>
+                        <button 
+                          @click.stop="copyToClipboard(o, 'swot-o')"
+                          class="opacity-0 group-hover/swot:opacity-100 p-1 hover:text-primary transition-all"
+                        >
+                          <Copy class="h-3 w-3" />
+                        </button>
                       </li>
                     </ul>
                   </div>
                   <div class="space-y-3">
-                    <div class="text-[10px] font-bold text-orange-600 uppercase tracking-widest border-b border-orange-100 pb-1">Threats / 威胁</div>
+                    <div class="text-[10px] font-bold text-orange-600 uppercase tracking-widest border-b border-orange-100 pb-1">{{ t.competitor.swotThreats }}</div>
                     <ul class="text-xs text-gray-600 space-y-2">
-                      <li v-for="t in competitorResult.swot.threats" :key="t" class="flex items-start gap-2">
+                      <li v-for="th in competitorResult.swot.threats" :key="th" class="flex items-start gap-2 group/swot">
                         <div class="w-1.5 h-1.5 bg-orange-500 rounded-full mt-1 flex-shrink-0"></div>
-                        {{ t }}
+                        <span class="flex-1">{{ th }}</span>
+                        <button 
+                          @click.stop="copyToClipboard(th, 'swot-th')"
+                          class="opacity-0 group-hover/swot:opacity-100 p-1 hover:text-primary transition-all"
+                        >
+                          <Copy class="h-3 w-3" />
+                        </button>
                       </li>
                     </ul>
                   </div>

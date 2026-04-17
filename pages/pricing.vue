@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Rocket, Gem, Check, ArrowRight, ShieldCheck, Zap } from 'lucide-vue-next';
+import { Rocket, Gem, Check, ArrowRight, ShieldCheck, Zap, ArrowLeft } from 'lucide-vue-next';
 
 import { useLocale } from '~/composables/useLocale';
 import { translations } from '~/lib/translations';
@@ -10,6 +10,11 @@ const t = computed(() => translations[locale.value]);
 onMounted(() => {
   initLocale();
 });
+
+const router = useRouter();
+const goBack = () => {
+  router.back();
+};
 
 interface PricingPlan {
   id: string;
@@ -37,7 +42,7 @@ const plans = computed<PricingPlan[]>(() => [
   {
     id: 'starter',
     name: t.value.pricing.starter.name,
-    price: locale.value === 'zh' ? '¥99' : '$19',
+    price: locale.value === 'zh' ? '¥69' : '$9.9',
     period: locale.value === 'zh' ? '/ 月' : '/ mo',
     description: t.value.pricing.starter.desc,
     features: t.value.pricing.starter.features,
@@ -48,7 +53,7 @@ const plans = computed<PricingPlan[]>(() => [
   {
     id: 'pro',
     name: t.value.pricing.pro.name,
-    price: locale.value === 'zh' ? '¥299' : '$49',
+    price: locale.value === 'zh' ? '¥199' : '$29.9',
     period: locale.value === 'zh' ? '/ 月' : '/ mo',
     description: t.value.pricing.pro.desc,
     features: t.value.pricing.pro.features,
@@ -83,7 +88,18 @@ const handleSubscription = async (planId: string) => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-[#f8fafc] py-20 px-4">
+  <div class="min-h-screen bg-[#f8fafc] py-20 px-4 relative">
+    <!-- Back Button -->
+    <div class="fixed top-8 left-8 z-50">
+      <button 
+        @click="goBack"
+        class="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-xl shadow-sm hover:bg-gray-50 transition-all text-sm font-medium text-gray-600 group"
+      >
+        <ArrowLeft class="h-4 w-4 group-hover:-translate-x-1 transition-transform" />
+        {{ t.common.back }}
+      </button>
+    </div>
+    
     <div class="max-w-7xl mx-auto">
       <div class="text-center mb-16">
         <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/5 text-primary text-xs font-bold uppercase tracking-widest mb-6 border border-primary/10">

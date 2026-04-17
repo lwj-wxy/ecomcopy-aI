@@ -1,0 +1,45 @@
+{
+  "entities": {
+    "users": {
+      "title": "User",
+      "description": "User profile information",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Firebase Auth UID" },
+        "email": { "type": "string", "format": "email", "description": "User email address" },
+        "name": { "type": "string", "description": "User display name" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Account creation timestamp" },
+        "role": { "type": "string", "enum": ["user", "admin"], "description": "User role" },
+        "plan": { "type": "string", "enum": ["free", "starter", "pro"], "description": "Subscription plan" },
+        "usage": { "type": "number", "description": "Current month generation count" }
+      },
+      "required": ["uid", "email", "name", "createdAt", "role", "plan"]
+    },
+    "listings": {
+      "title": "Listing",
+      "description": "Generated product listings",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Owner UID" },
+        "productName": { "type": "string", "description": "Original product name" },
+        "features": { "type": "string", "description": "Original features input" },
+        "platform": { "type": "string", "description": "Target platform" },
+        "title": { "type": "string", "description": "Generated title" },
+        "description": { "type": "string", "description": "Generated description" },
+        "tags": { "type": "string", "description": "Generated tags" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Generation timestamp" }
+      },
+      "required": ["userId", "productName", "title", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "users",
+      "description": "User private profile"
+    },
+    "/listings/{listingId}": {
+      "schema": "listings",
+      "description": "Generated product listings"
+    }
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "name": "react-example",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "nuxt dev --port 3000 --host 0.0.0.0",
+    "build": "nuxt build",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare",
+    "lint": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@element-plus/nuxt": "^1.1.5",
+    "@google/genai": "^1.29.0",
+    "@tailwindcss/vite": "^4.2.2",
+    "@types/d3": "^7.4.3",
+    "@vueuse/core": "^12.8.2",
+    "@vueuse/nuxt": "^12.8.2",
+    "clsx": "^2.1.1",
+    "d3": "^7.9.0",
+    "element-plus": "^2.13.7",
+    "firebase": "^12.12.0",
+    "firebase-admin": "^13.8.0",
+    "lucide-vue-next": "^0.475.0",
+    "motion": "^12.38.0",
+    "nuxt": "^3.21.2",
+    "openai": "^6.34.0",
+    "stripe": "^22.0.2",
+    "tailwind-merge": "^3.5.0",
+    "vue": "^3.5.32",
+    "vue-router": "^4.6.4"
+  },
+  "devDependencies": {
+    "@types/node": "^22.14.0",
+    "autoprefixer": "^10.4.21",
+    "tailwindcss": "^4.1.14",
+    "typescript": "~5.8.2"
+  }
+}

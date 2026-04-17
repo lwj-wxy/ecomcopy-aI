@@ -1,4 +1,4 @@
-import { defineNuxtRouteMiddleware, navigateTo } from '#app';
+import { defineNuxtRouteMiddleware, navigateTo, useCookie } from '#app';
 
 export default defineNuxtRouteMiddleware((to, from) => {
   const token = useCookie('auth_token');
@@ -10,8 +10,8 @@ export default defineNuxtRouteMiddleware((to, from) => {
     return navigateTo('/login');
   }
 
-  // 如果已登录且访问登录页，重定向到 dashboard
-  if (to.path === '/login' && token.value) {
+  // 如果已登录且访问登录页或首页，重定向到 dashboard
+  if ((to.path === '/login' || to.path === '/') && token.value) {
     return navigateTo('/dashboard');
   }
 });

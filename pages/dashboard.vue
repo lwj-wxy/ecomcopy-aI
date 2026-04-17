@@ -1,8 +1,4 @@
 <script setup lang="ts">
-definePageMeta({
-  middleware: 'auth'
-});
-
 import { ref, onMounted, watch, computed } from 'vue';
 import { 
   Sparkles, 

@@ -297,26 +297,6 @@ const fetchUserProfile = () => {
 
 onMounted(() => {
   initLocale();
-  // Handle Mock Payment Success
-  const route = useRoute();
-    if (route.query.status === 'success' && route.query.mock_plan) {
-    const newPlan = route.query.mock_plan as string;
-    if (user.value) {
-      updateDoc(doc(db, 'users', user.value.uid), {
-        plan: newPlan,
-        usage: 0 // Reset usage on upgrade for demo
-      }).then(() => {
-        ElNotification({
-          title: t.value.common.upgradeSuccessTitle,
-          message: t.value.common.upgradeSuccessMsg,
-          type: 'success',
-          duration: 5000
-        });
-        // Clear query params
-        window.history.replaceState({}, document.title, window.location.pathname);
-      });
-    }
-  }
 
   onAuthStateChanged(auth, (firebaseUser) => {
     authLoading.value = false;

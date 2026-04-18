@@ -1,4 +1,7 @@
 import tailwindcss from '@tailwindcss/vite'
+import { config as loadDotenv } from 'dotenv'
+
+loadDotenv({ path: '.env.local' })
 
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({

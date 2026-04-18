@@ -30,6 +30,9 @@ declare module "nitropack/types" {
     '/api/market-research': {
       'post': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/market-research.post').default>>>>
     }
+    '/api/paddle-webhook': {
+      'post': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/paddle-webhook.post').default>>>>
+    }
     '/api/ping': {
       'get': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/ping.get').default>>>>
     }

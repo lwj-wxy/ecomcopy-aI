@@ -1,14 +1,26 @@
 <script setup lang="ts">
 import { Rocket, Gem, Check, ArrowRight, ShieldCheck, Zap, ArrowLeft } from 'lucide-vue-next';
+import { onAuthStateChanged } from 'firebase/auth';
 
 import { useLocale } from '~/composables/useLocale';
+import { auth } from '~/lib/firebase';
 import { translations } from '~/lib/translations';
 
 const { locale, initLocale } = useLocale();
 const t = computed(() => translations[locale.value]);
 
+const currentUser = ref<{ uid: string; email: string | null } | null>(null);
+
 onMounted(() => {
   initLocale();
+  onAuthStateChanged(auth, (firebaseUser) => {
+    currentUser.value = firebaseUser
+      ? {
+          uid: firebaseUser.uid,
+          email: firebaseUser.email
+        }
+      : null;
+  });
 });
 
 const router = useRouter();
@@ -66,12 +78,21 @@ const checkoutLoading = ref<string | null>(null);
 
 const handleSubscription = async (planId: string) => {
   if (planId === 'free') return;
+  if (!currentUser.value) {
+    ElMessage.warning(t.value.common.loginFirst || 'Please login first');
+    navigateTo('/login');
+    return;
+  }
   
   checkoutLoading.value = planId;
   try {
     const res: any = await $fetch('/api/create-checkout', {
       method: 'POST',
-      body: { planId }
+      body: {
+        planId,
+        userId: currentUser.value.uid,
+        email: currentUser.value.email
+      }
     });
     
     if (res.url) {

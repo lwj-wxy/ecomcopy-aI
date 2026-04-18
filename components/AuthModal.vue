@@ -4,7 +4,7 @@ import { useAuth } from '~/composables/useAuth';
 import { useLocale } from '~/composables/useLocale';
 import { translations } from '~/lib/translations';
 
-const { loginWithGoogle } = useAuth();
+const { loginWithGoogle, logout } = useAuth();
 const { locale } = useLocale();
 const t = computed(() => translations[locale.value]);
 
@@ -19,6 +19,22 @@ const handleGoogleLogin = async () => {
   } finally {
     loading.value = false;
   }
+};
+
+const handleEmailLogin = async () => {
+  try {
+    await $fetch('/api/auth/logout', { method: 'POST' });
+  } catch (error) {
+    console.error('Failed to clear auth cookie before email login:', error);
+  }
+
+  try {
+    await logout();
+  } catch (error) {
+    console.error('Failed to sign out firebase before email login:', error);
+  }
+
+  await navigateTo('/login', { external: true });
 };
 </script>
 
@@ -57,7 +73,7 @@ const handleGoogleLogin = async () => {
 
           <button 
             class="w-full h-12 px-6 bg-gray-900 text-white rounded-xl hover:bg-gray-800 transition-all font-medium"
-            @click="ElMessage.info('Email login coming soon')"
+            @click="handleEmailLogin"
           >
             {{ t.auth.email }}
           </button>

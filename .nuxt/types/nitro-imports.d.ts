@@ -46,6 +46,7 @@ declare global {
   const fromPlainHandler: typeof import('../../node_modules/h3').fromPlainHandler
   const fromWebHandler: typeof import('../../node_modules/h3').fromWebHandler
   const getCookie: typeof import('../../node_modules/h3').getCookie
+  const getFirebaseAdminDb: typeof import('../../server/utils/firebase-admin').getFirebaseAdminDb
   const getHeader: typeof import('../../node_modules/h3').getHeader
   const getHeaders: typeof import('../../node_modules/h3').getHeaders
   const getMethod: typeof import('../../node_modules/h3').getMethod
@@ -147,3 +148,4 @@ export { defineTask, runTask } from 'nitropack/runtime/internal/task';
 export { defineNitroErrorHandler } from 'nitropack/runtime/internal/error/utils';
 export { buildAssetsURL as __buildAssetsURL, publicAssetsURL as __publicAssetsURL } from 'C:/Users/StandardSoftware/Desktop/my-project/ecomcopy-aI/node_modules/@nuxt/nitro-server/dist/runtime/utils/paths';
 export { defineAppConfig } from 'C:/Users/StandardSoftware/Desktop/my-project/ecomcopy-aI/node_modules/@nuxt/nitro-server/dist/runtime/utils/config';
+export { getFirebaseAdminDb } from 'C:/Users/StandardSoftware/Desktop/my-project/ecomcopy-aI/server/utils/firebase-admin';

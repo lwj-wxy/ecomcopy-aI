@@ -18,6 +18,14 @@ This generates the `.output` folder containing the production-ready server and a
     Create a `.env` file or export variables:
     - `DEEPSEEK_API_KEY`
     - `GEMINI_API_KEY`
+    - `PADDLE_ENV`
+    - `PADDLE_API_KEY`
+    - `PADDLE_WEBHOOK_SECRET`
+    - `PADDLE_PRICE_STARTER`
+    - `PADDLE_PRICE_PRO`
+    - `FIREBASE_ADMIN_PROJECT_ID`
+    - `FIREBASE_ADMIN_CLIENT_EMAIL`
+    - `FIREBASE_ADMIN_PRIVATE_KEY`
     - `NITRO_PORT=3000`
 4.  **Run the Server**:
     ```bash
@@ -41,3 +49,12 @@ This generates the `.output` folder containing the production-ready server and a
 
 ## 4. Firebase Configuration
 Ensure your custom domain is added to the **Authorized Domains** list in the Firebase Console (Authentication > Settings > Authorized Domains). This is required for Google Login to work on your new domain.
+
+## 5. Paddle Webhook Configuration
+Create a Paddle notification destination that points to:
+
+`https://<your-domain>/api/paddle-webhook`
+
+Subscribe to at least:
+- `transaction.paid`
+- `transaction.completed`

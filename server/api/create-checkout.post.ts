@@ -1,57 +1,89 @@
-import Stripe from 'stripe';
-
-const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY;
 const SITE_URL = process.env.NUXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+const PADDLE_ENV = process.env.PADDLE_ENV === 'sandbox' ? 'sandbox' : 'production';
+const PADDLE_API_KEY = process.env.PADDLE_API_KEY;
 
-// Real-world Price IDs (Replace with your actual Stripe Price IDs)
-const PRICE_IDS: Record<string, string> = {
-  'starter': 'price_starter_dummy', // Replace with real IDs like 'price_1Q...'
-  'pro': 'price_pro_dummy'
+const PRICE_IDS: Record<string, string | undefined> = {
+  starter: process.env.PADDLE_PRICE_STARTER,
+  pro: process.env.PADDLE_PRICE_PRO
 };
 
-let stripe: Stripe | null = null;
+const PADDLE_API_BASE =
+  PADDLE_ENV === 'sandbox' ? 'https://sandbox-api.paddle.com' : 'https://api.paddle.com';
 
 export default defineEventHandler(async (event) => {
-  const body = await readBody(event);
-  const { planId } = body;
+  const body = await readBody<{ planId?: string; userId?: string; email?: string | null }>(event);
+  const planId = body?.planId;
+  const userId = body?.userId?.trim();
+  const email = body?.email?.trim();
 
-  if (!STRIPE_SECRET_KEY) {
-    // For demo purposes, if key is missing, return a dummy redirect
-    // In production, this would throw an error or crash.
-    // I will simulate a "mock" checkout URL for this environment if no keys are set.
-    return { 
-      url: `${SITE_URL}/dashboard?status=success&mock_plan=${planId}` 
-    };
-  }
-
-  if (!stripe) {
-    stripe = new Stripe(STRIPE_SECRET_KEY);
-  }
-
-  try {
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
-      line_items: [
-        {
-          price: PRICE_IDS[planId],
-          quantity: 1,
-        },
-      ],
-      mode: 'subscription',
-      success_url: `${SITE_URL}/dashboard?status=success&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${SITE_URL}/pricing?status=cancel`,
-      metadata: {
-        planId: planId,
-        // In a real app, you'd associate this with a userId
-        // userId: body.userId 
-      }
+  if (!planId || !(planId in PRICE_IDS)) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'Invalid planId'
     });
+  }
 
-    return { url: session.url };
-  } catch (error: any) {
+  if (!userId) {
+    throw createError({
+      statusCode: 401,
+      statusMessage: 'Please login before upgrading'
+    });
+  }
+
+  if (!PADDLE_API_KEY) {
     throw createError({
       statusCode: 500,
-      statusMessage: error.message
+      statusMessage: 'Missing PADDLE_API_KEY in server environment'
     });
   }
+
+  const priceId = PRICE_IDS[planId];
+  if (!priceId) {
+    throw createError({
+      statusCode: 500,
+      statusMessage: `Missing Paddle price id for plan: ${planId}`
+    });
+  }
+
+  const paddleResponse = await fetch(`${PADDLE_API_BASE}/transactions`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${PADDLE_API_KEY}`,
+      'Content-Type': 'application/json',
+      'Paddle-Version': '1'
+    },
+    body: JSON.stringify({
+      items: [{ price_id: priceId, quantity: 1 }],
+      collection_mode: 'automatic',
+      enable_checkout: true,
+      checkout: {
+        url: `${SITE_URL}/dashboard`
+      },
+      custom_data: {
+        planId,
+        userId,
+        ...(email ? { email } : {})
+      }
+    })
+  });
+
+  const paddlePayload: any = await paddleResponse.json().catch(() => ({}));
+
+  if (!paddleResponse.ok) {
+    const detail = paddlePayload?.error?.detail || paddlePayload?.error?.code || 'Paddle API error';
+    throw createError({
+      statusCode: paddleResponse.status || 500,
+      statusMessage: detail
+    });
+  }
+
+  const checkoutUrl = paddlePayload?.data?.checkout?.url;
+  if (!checkoutUrl) {
+    throw createError({
+      statusCode: 500,
+      statusMessage: 'Paddle checkout URL missing in API response'
+    });
+  }
+
+  return { url: checkoutUrl };
 });

@@ -7,6 +7,8 @@ import { defineEventHandler, handleCacheHeaders, splitCookiesString, createEvent
 import { escapeHtml } from 'file://C:/Users/StandardSoftware/Desktop/my-project/ecomcopy-aI/node_modules/@vue/shared/dist/shared.cjs.js';
 import { getFirestore, FieldValue } from 'file://C:/Users/StandardSoftware/Desktop/my-project/ecomcopy-aI/node_modules/firebase-admin/lib/esm/firestore/index.js';
 import { getApps, initializeApp, cert, applicationDefault } from 'file://C:/Users/StandardSoftware/Desktop/my-project/ecomcopy-aI/node_modules/firebase-admin/lib/esm/app/index.js';
+import { promises, existsSync } from 'node:fs';
+import { config as config$1 } from 'file://C:/Users/StandardSoftware/Desktop/my-project/ecomcopy-aI/node_modules/dotenv/lib/main.js';
 import Stripe from 'file://C:/Users/StandardSoftware/Desktop/my-project/ecomcopy-aI/node_modules/stripe/esm/stripe.esm.node.js';
 import { createRenderer, getRequestDependencies, getPreloadLinks, getPrefetchLinks } from 'file://C:/Users/StandardSoftware/Desktop/my-project/ecomcopy-aI/node_modules/vue-bundle-renderer/dist/runtime.mjs';
 import { parseURL, withoutBase, joinURL, getQuery, withQuery, withTrailingSlash, decodePath, withLeadingSlash, withoutTrailingSlash, joinRelativeURL } from 'file://C:/Users/StandardSoftware/Desktop/my-project/ecomcopy-aI/node_modules/ufo/dist/index.mjs';
@@ -35,7 +37,6 @@ import { AsyncLocalStorage } from 'node:async_hooks';
 import { getContext } from 'file://C:/Users/StandardSoftware/Desktop/my-project/ecomcopy-aI/node_modules/unctx/dist/index.mjs';
 import { captureRawStackTrace, parseRawStackTrace } from 'file://C:/Users/StandardSoftware/Desktop/my-project/ecomcopy-aI/node_modules/errx/dist/index.js';
 import _wH6JrtIxmaSoA8lCPWFnE9z4lQeXW6H5z3l5aymEQw from 'file://C:/Users/StandardSoftware/Desktop/my-project/ecomcopy-aI/node_modules/@nuxt/vite-builder/dist/fix-stacktrace.mjs';
-import { promises } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname as dirname$1, resolve as resolve$1 } from 'file://C:/Users/StandardSoftware/Desktop/my-project/ecomcopy-aI/node_modules/pathe/dist/index.mjs';
 import { walkResolver } from 'file://C:/Users/StandardSoftware/Desktop/my-project/ecomcopy-aI/node_modules/unhead/dist/utils.mjs';
@@ -651,7 +652,10 @@ const _inlineRuntimeConfig = {
       }
     }
   },
-  "public": {},
+  "public": {
+    "paddleClientToken": "test_62b9947d6d17eba05124ece54e3",
+    "paddleEnv": "sandbox"
+  },
   "deepseekApiKey": "sk-5b596dc28cab4a399523b03cf4963d7f",
   "openaiApiKey": "",
   "geminiApiKey": ""
@@ -2028,7 +2032,7 @@ const appTeleportTag = "div";
 
 const appTeleportAttrs = {"id":"teleports"};
 
-const appId = "nuxt-app";
+const appId$1 = "nuxt-app";
 
 const devReducers = {
 	VNode: (data) => isVNode(data) ? {
@@ -2099,7 +2103,7 @@ const _Q3Hdhpz4YwozKT7kB0_tZkn3xP6gwQm694nsYuShIQ = (nitroApp) => {
 		}
 		try {
 			const reducers = Object.assign(Object.create(null), devReducers, ctx.event.context["~payloadReducers"]);
-			htmlContext.bodyAppend.unshift(`<script type="application/json" data-nuxt-logs="${appId}">${stringify(ctx.logs, reducers)}<\/script>`);
+			htmlContext.bodyAppend.unshift(`<script type="application/json" data-nuxt-logs="${appId$1}">${stringify(ctx.logs, reducers)}<\/script>`);
 		} catch (e) {
 			const shortError = e instanceof Error && "toString" in e ? ` Received \`${e.toString()}\`.` : "";
 			console.warn(`[nuxt] Failed to stringify dev server logs.${shortError} You can define your own reducer/reviver for rich types following the instructions in https://nuxt.com/docs/api/composables/use-nuxt-app#payload.`);
@@ -2119,22 +2123,7 @@ const plugins = [
 _wH6JrtIxmaSoA8lCPWFnE9z4lQeXW6H5z3l5aymEQw
 ];
 
-const assets = {
-  "/index.mjs": {
-    "type": "text/javascript; charset=utf-8",
-    "etag": "\"1fce7-b/7/42X3ejGrPCqICfFOHFBtuF8\"",
-    "mtime": "2026-04-18T06:33:34.376Z",
-    "size": 130279,
-    "path": "index.mjs"
-  },
-  "/index.mjs.map": {
-    "type": "application/json",
-    "etag": "\"7d1a8-iGLdUsdPy2H5nJoieKLNeFPDYbM\"",
-    "mtime": "2026-04-18T06:33:34.377Z",
-    "size": 512424,
-    "path": "index.mjs.map"
-  }
-};
+const assets = {};
 
 function readAsset (id) {
   const serverDir = dirname$1(fileURLToPath(globalThis._importMeta_.url));
@@ -3144,19 +3133,36 @@ const competitor_post$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineP
   default: competitor_post
 }, Symbol.toStringTag, { value: 'Module' }));
 
-const SITE_URL = process.env.NUXT_PUBLIC_SITE_URL || "http://localhost:3000";
+let loaded = false;
+function ensureServerEnvLoaded() {
+  if (loaded) return;
+  loaded = true;
+  const cwd = process.cwd();
+  const localEnvPath = resolve(cwd, ".env.local");
+  const envPath = resolve(cwd, ".env");
+  if (existsSync(localEnvPath)) {
+    config$1({ path: localEnvPath });
+  }
+  if (existsSync(envPath)) {
+    config$1({ path: envPath, override: false });
+  }
+}
+
+var _a;
+ensureServerEnvLoaded();
 const PADDLE_ENV = process.env.PADDLE_ENV === "sandbox" ? "sandbox" : "production";
 const PADDLE_API_KEY = process.env.PADDLE_API_KEY;
+const PADDLE_CHECKOUT_URL = (_a = process.env.PADDLE_CHECKOUT_URL) == null ? void 0 : _a.trim();
 const PRICE_IDS = {
   starter: process.env.PADDLE_PRICE_STARTER,
   pro: process.env.PADDLE_PRICE_PRO
 };
 const PADDLE_API_BASE = PADDLE_ENV === "sandbox" ? "https://sandbox-api.paddle.com" : "https://api.paddle.com";
 const createCheckout_post = defineEventHandler(async (event) => {
-  var _a, _b, _c, _d, _e, _f;
+  var _a2, _b, _c, _d, _e, _f, _g, _h, _i;
   const body = await readBody(event);
   const planId = body == null ? void 0 : body.planId;
-  const userId = (_a = body == null ? void 0 : body.userId) == null ? void 0 : _a.trim();
+  const userId = (_a2 = body == null ? void 0 : body.userId) == null ? void 0 : _a2.trim();
   const email = (_b = body == null ? void 0 : body.email) == null ? void 0 : _b.trim();
   if (!planId || !(planId in PRICE_IDS)) {
     throw createError({
@@ -3183,36 +3189,50 @@ const createCheckout_post = defineEventHandler(async (event) => {
       statusMessage: `Missing Paddle price id for plan: ${planId}`
     });
   }
-  const paddleResponse = await fetch(`${PADDLE_API_BASE}/transactions`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${PADDLE_API_KEY}`,
-      "Content-Type": "application/json",
-      "Paddle-Version": "1"
-    },
-    body: JSON.stringify({
-      items: [{ price_id: priceId, quantity: 1 }],
-      collection_mode: "automatic",
-      enable_checkout: true,
-      checkout: {
-        url: `${SITE_URL}/dashboard`
-      },
-      custom_data: {
-        planId,
-        userId,
-        ...email ? { email } : {}
-      }
-    })
-  });
-  const paddlePayload = await paddleResponse.json().catch(() => ({}));
+  const transactionPayload = {
+    items: [{ price_id: priceId, quantity: 1 }],
+    collection_mode: "automatic",
+    enable_checkout: true,
+    custom_data: {
+      planId,
+      userId,
+      ...email ? { email } : {}
+    }
+  };
+  if (PADDLE_CHECKOUT_URL) {
+    transactionPayload.checkout = { url: PADDLE_CHECKOUT_URL };
+  }
+  const requestHeaders = {
+    Authorization: `Bearer ${PADDLE_API_KEY}`,
+    "Content-Type": "application/json",
+    "Paddle-Version": "1"
+  };
+  const createTransaction = async (payload) => {
+    const response = await fetch(`${PADDLE_API_BASE}/transactions`, {
+      method: "POST",
+      headers: requestHeaders,
+      body: JSON.stringify(payload)
+    });
+    const body2 = await response.json().catch(() => ({}));
+    return { response, body: body2 };
+  };
+  let { response: paddleResponse, body: paddlePayload } = await createTransaction(transactionPayload);
+  const firstErrorDetail = String(
+    ((_c = paddlePayload == null ? void 0 : paddlePayload.error) == null ? void 0 : _c.detail) || ((_d = paddlePayload == null ? void 0 : paddlePayload.error) == null ? void 0 : _d.code) || ""
+  ).toLowerCase();
+  const shouldRetryWithoutCheckout = !paddleResponse.ok && Boolean((_e = transactionPayload.checkout) == null ? void 0 : _e.url) && firstErrorDetail.includes("checkout.url") && firstErrorDetail.includes("approved");
+  if (shouldRetryWithoutCheckout) {
+    delete transactionPayload.checkout;
+    ({ response: paddleResponse, body: paddlePayload } = await createTransaction(transactionPayload));
+  }
   if (!paddleResponse.ok) {
-    const detail = ((_c = paddlePayload == null ? void 0 : paddlePayload.error) == null ? void 0 : _c.detail) || ((_d = paddlePayload == null ? void 0 : paddlePayload.error) == null ? void 0 : _d.code) || "Paddle API error";
+    const detail = ((_f = paddlePayload == null ? void 0 : paddlePayload.error) == null ? void 0 : _f.detail) || ((_g = paddlePayload == null ? void 0 : paddlePayload.error) == null ? void 0 : _g.code) || "Paddle API error";
     throw createError({
       statusCode: paddleResponse.status || 500,
       statusMessage: detail
     });
   }
-  const checkoutUrl = (_f = (_e = paddlePayload == null ? void 0 : paddlePayload.data) == null ? void 0 : _e.checkout) == null ? void 0 : _f.url;
+  const checkoutUrl = (_i = (_h = paddlePayload == null ? void 0 : paddlePayload.data) == null ? void 0 : _h.checkout) == null ? void 0 : _i.url;
   if (!checkoutUrl) {
     throw createError({
       statusCode: 500,
@@ -3458,13 +3478,44 @@ const marketResearch_post$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.def
   default: marketResearch_post
 }, Symbol.toStringTag, { value: 'Module' }));
 
+var projectId = "brave-attic-493413-m2";
+var appId = "1:203400586323:web:3265b506f6331291e4d2a6";
+var apiKey = "AIzaSyAk7t9jTE96IV_z7nRXmUyk8cvPodsNSks";
+var authDomain = "brave-attic-493413-m2.firebaseapp.com";
+var firestoreDatabaseId = "ai-studio-93153a68-fa83-416a-8586-04cae621e5c9";
+var storageBucket = "brave-attic-493413-m2.firebasestorage.app";
+var messagingSenderId = "203400586323";
+var measurementId = "";
+const firebaseAppletConfig = {
+	projectId: projectId,
+	appId: appId,
+	apiKey: apiKey,
+	authDomain: authDomain,
+	firestoreDatabaseId: firestoreDatabaseId,
+	storageBucket: storageBucket,
+	messagingSenderId: messagingSenderId,
+	measurementId: measurementId
+};
+
+ensureServerEnvLoaded();
 let adminDb = null;
+function normalizePrivateKey(value) {
+  if (!value) return void 0;
+  let normalized = String(value).trim();
+  if (normalized.endsWith(",")) {
+    normalized = normalized.slice(0, -1).trimEnd();
+  }
+  if (normalized.startsWith('"') && normalized.endsWith('"') || normalized.startsWith("'") && normalized.endsWith("'")) {
+    normalized = normalized.slice(1, -1);
+  }
+  return normalized.replace(/\\n/g, "\n");
+}
 function getServiceAccountFromEnv() {
   const rawJson = process.env.FIREBASE_ADMIN_CREDENTIALS_JSON || process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
   if (!rawJson) return null;
   const parsed = JSON.parse(rawJson);
   if (parsed == null ? void 0 : parsed.private_key) {
-    parsed.private_key = String(parsed.private_key).replace(/\\n/g, "\n");
+    parsed.private_key = normalizePrivateKey(parsed.private_key);
   }
   return {
     projectId: parsed.project_id || parsed.projectId,
@@ -3479,7 +3530,7 @@ function getFirebaseAdminDb() {
     const serviceAccount = getServiceAccountFromEnv();
     const envProjectId = process.env.FIREBASE_ADMIN_PROJECT_ID || process.env.FIREBASE_PROJECT_ID;
     const envClientEmail = process.env.FIREBASE_ADMIN_CLIENT_EMAIL;
-    const envPrivateKey = (_a = process.env.FIREBASE_ADMIN_PRIVATE_KEY) == null ? void 0 : _a.replace(/\\n/g, "\n");
+    const envPrivateKey = normalizePrivateKey(process.env.FIREBASE_ADMIN_PRIVATE_KEY);
     if ((serviceAccount == null ? void 0 : serviceAccount.projectId) && (serviceAccount == null ? void 0 : serviceAccount.clientEmail) && (serviceAccount == null ? void 0 : serviceAccount.privateKey)) {
       initializeApp({
         credential: cert(serviceAccount),
@@ -3501,10 +3552,13 @@ function getFirebaseAdminDb() {
       });
     }
   }
-  adminDb = getFirestore();
+  const databaseId = process.env.FIREBASE_ADMIN_DATABASE_ID || process.env.FIREBASE_DATABASE_ID || process.env.FIRESTORE_DATABASE_ID || ((_a = firebaseAppletConfig) == null ? void 0 : _a.firestoreDatabaseId);
+  const app = getApps()[0];
+  adminDb = databaseId ? getFirestore(app, databaseId) : getFirestore(app);
   return adminDb;
 }
 
+ensureServerEnvLoaded();
 const PADDLE_WEBHOOK_SECRET = process.env.PADDLE_WEBHOOK_SECRET;
 const PADDLE_PRICE_STARTER = process.env.PADDLE_PRICE_STARTER;
 const PADDLE_PRICE_PRO = process.env.PADDLE_PRICE_PRO;
@@ -3598,10 +3652,12 @@ const paddleWebhook_post = defineEventHandler(async (event) => {
     });
   }
   const eventType = payload == null ? void 0 : payload.event_type;
-  if (eventType !== "transaction.completed" && eventType !== "transaction.paid") {
+  const data = (payload == null ? void 0 : payload.data) || {};
+  const transactionStatus = String((data == null ? void 0 : data.status) || "").toLowerCase();
+  const shouldHandleTransactionEvent = eventType === "transaction.completed" || eventType === "transaction.paid" || eventType === "transaction.updated" && (transactionStatus === "completed" || transactionStatus === "paid");
+  if (!shouldHandleTransactionEvent) {
     return { received: true, ignored: true, eventType };
   }
-  const data = (payload == null ? void 0 : payload.data) || {};
   const customData = (data == null ? void 0 : data.custom_data) || {};
   const planId = normalizePlan(customData == null ? void 0 : customData.planId) || inferPlanFromItems(data == null ? void 0 : data.items);
   if (!planId) {
@@ -3708,7 +3764,7 @@ function renderPayloadJsonScript(opts) {
 	const payload = {
 		"type": "application/json",
 		"innerHTML": contents,
-		"data-nuxt-data": appId,
+		"data-nuxt-data": appId$1,
 		"data-ssr": !(opts.ssrContext.noSSR)
 	};
 	{

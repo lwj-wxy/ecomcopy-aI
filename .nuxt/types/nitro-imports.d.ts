@@ -40,6 +40,7 @@ declare global {
   const defineWebSocketHandler: typeof import('../../node_modules/h3').defineWebSocketHandler
   const deleteCookie: typeof import('../../node_modules/h3').deleteCookie
   const dynamicEventHandler: typeof import('../../node_modules/h3').dynamicEventHandler
+  const ensureServerEnvLoaded: typeof import('../../server/utils/load-env').ensureServerEnvLoaded
   const eventHandler: typeof import('../../node_modules/h3').eventHandler
   const fetchWithEvent: typeof import('../../node_modules/h3').fetchWithEvent
   const fromNodeMiddleware: typeof import('../../node_modules/h3').fromNodeMiddleware
@@ -149,3 +150,4 @@ export { defineNitroErrorHandler } from 'nitropack/runtime/internal/error/utils'
 export { buildAssetsURL as __buildAssetsURL, publicAssetsURL as __publicAssetsURL } from 'C:/Users/StandardSoftware/Desktop/my-project/ecomcopy-aI/node_modules/@nuxt/nitro-server/dist/runtime/utils/paths';
 export { defineAppConfig } from 'C:/Users/StandardSoftware/Desktop/my-project/ecomcopy-aI/node_modules/@nuxt/nitro-server/dist/runtime/utils/config';
 export { getFirebaseAdminDb } from 'C:/Users/StandardSoftware/Desktop/my-project/ecomcopy-aI/server/utils/firebase-admin';
+export { ensureServerEnvLoaded } from 'C:/Users/StandardSoftware/Desktop/my-project/ecomcopy-aI/server/utils/load-env';

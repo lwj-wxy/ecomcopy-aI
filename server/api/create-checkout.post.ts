@@ -1,6 +1,10 @@
-const SITE_URL = process.env.NUXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+import { ensureServerEnvLoaded } from '../utils/load-env';
+
+ensureServerEnvLoaded();
+
 const PADDLE_ENV = process.env.PADDLE_ENV === 'sandbox' ? 'sandbox' : 'production';
 const PADDLE_API_KEY = process.env.PADDLE_API_KEY;
+const PADDLE_CHECKOUT_URL = process.env.PADDLE_CHECKOUT_URL?.trim();
 
 const PRICE_IDS: Record<string, string | undefined> = {
   starter: process.env.PADDLE_PRICE_STARTER,
@@ -45,29 +49,54 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  const paddleResponse = await fetch(`${PADDLE_API_BASE}/transactions`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${PADDLE_API_KEY}`,
-      'Content-Type': 'application/json',
-      'Paddle-Version': '1'
-    },
-    body: JSON.stringify({
-      items: [{ price_id: priceId, quantity: 1 }],
-      collection_mode: 'automatic',
-      enable_checkout: true,
-      checkout: {
-        url: `${SITE_URL}/dashboard`
-      },
-      custom_data: {
-        planId,
-        userId,
-        ...(email ? { email } : {})
-      }
-    })
-  });
+  const transactionPayload: Record<string, any> = {
+    items: [{ price_id: priceId, quantity: 1 }],
+    collection_mode: 'automatic',
+    enable_checkout: true,
+    custom_data: {
+      planId,
+      userId,
+      ...(email ? { email } : {})
+    }
+  };
 
-  const paddlePayload: any = await paddleResponse.json().catch(() => ({}));
+  // checkout.url must be an approved payment-link domain in Paddle.
+  // If omitted, Paddle uses the account default payment link.
+  if (PADDLE_CHECKOUT_URL) {
+    transactionPayload.checkout = { url: PADDLE_CHECKOUT_URL };
+  }
+
+  const requestHeaders = {
+    Authorization: `Bearer ${PADDLE_API_KEY}`,
+    'Content-Type': 'application/json',
+    'Paddle-Version': '1'
+  };
+
+  const createTransaction = async (payload: Record<string, any>) => {
+    const response = await fetch(`${PADDLE_API_BASE}/transactions`, {
+      method: 'POST',
+      headers: requestHeaders,
+      body: JSON.stringify(payload)
+    });
+    const body: any = await response.json().catch(() => ({}));
+    return { response, body };
+  };
+
+  let { response: paddleResponse, body: paddlePayload } = await createTransaction(transactionPayload);
+
+  const firstErrorDetail = String(
+    paddlePayload?.error?.detail || paddlePayload?.error?.code || ''
+  ).toLowerCase();
+  const shouldRetryWithoutCheckout =
+    !paddleResponse.ok &&
+    Boolean(transactionPayload.checkout?.url) &&
+    firstErrorDetail.includes('checkout.url') &&
+    firstErrorDetail.includes('approved');
+
+  if (shouldRetryWithoutCheckout) {
+    delete transactionPayload.checkout;
+    ({ response: paddleResponse, body: paddlePayload } = await createTransaction(transactionPayload));
+  }
 
   if (!paddleResponse.ok) {
     const detail = paddlePayload?.error?.detail || paddlePayload?.error?.code || 'Paddle API error';

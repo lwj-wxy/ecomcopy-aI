@@ -22,7 +22,9 @@ import { NuxtModule, ModuleDependencyMeta } from '@nuxt/schema'
    },
   }
   interface SharedPublicRuntimeConfig {
+   paddleClientToken: string,
 
+   paddleEnv: string,
   }
 declare module '@nuxt/schema' {
   interface ModuleDependencies {

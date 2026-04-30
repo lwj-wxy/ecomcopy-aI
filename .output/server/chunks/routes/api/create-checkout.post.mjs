@@ -1,0 +1,108 @@
+import { c as defineEventHandler, r as readBody, e as createError } from '../../_/nitro.mjs';
+import { e as ensureServerEnvLoaded } from '../../_/load-env.mjs';
+import 'node:http';
+import 'node:https';
+import 'node:events';
+import 'node:buffer';
+import 'node:fs';
+import 'node:path';
+import 'node:crypto';
+import 'node:url';
+import 'dotenv';
+
+var _a;
+ensureServerEnvLoaded();
+const PADDLE_ENV = process.env.PADDLE_ENV === "sandbox" ? "sandbox" : "production";
+const PADDLE_API_KEY = process.env.PADDLE_API_KEY;
+const PADDLE_CHECKOUT_URL = (_a = process.env.PADDLE_CHECKOUT_URL) == null ? void 0 : _a.trim();
+const PRICE_IDS = {
+  starter: process.env.PADDLE_PRICE_STARTER,
+  pro: process.env.PADDLE_PRICE_PRO
+};
+const PADDLE_API_BASE = PADDLE_ENV === "sandbox" ? "https://sandbox-api.paddle.com" : "https://api.paddle.com";
+const createCheckout_post = defineEventHandler(async (event) => {
+  var _a2, _b, _c, _d, _e, _f, _g, _h, _i;
+  const body = await readBody(event);
+  const planId = body == null ? void 0 : body.planId;
+  const userId = (_a2 = body == null ? void 0 : body.userId) == null ? void 0 : _a2.trim();
+  const email = (_b = body == null ? void 0 : body.email) == null ? void 0 : _b.trim();
+  if (!planId || !(planId in PRICE_IDS)) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: "Invalid planId"
+    });
+  }
+  if (!userId) {
+    throw createError({
+      statusCode: 401,
+      statusMessage: "Please login before upgrading"
+    });
+  }
+  if (!PADDLE_API_KEY) {
+    throw createError({
+      statusCode: 500,
+      statusMessage: "Missing PADDLE_API_KEY in server environment"
+    });
+  }
+  const priceId = PRICE_IDS[planId];
+  if (!priceId) {
+    throw createError({
+      statusCode: 500,
+      statusMessage: `Missing Paddle price id for plan: ${planId}`
+    });
+  }
+  const transactionPayload = {
+    items: [{ price_id: priceId, quantity: 1 }],
+    collection_mode: "automatic",
+    enable_checkout: true,
+    custom_data: {
+      planId,
+      userId,
+      ...email ? { email } : {}
+    }
+  };
+  if (PADDLE_CHECKOUT_URL) {
+    transactionPayload.checkout = { url: PADDLE_CHECKOUT_URL };
+  }
+  const requestHeaders = {
+    Authorization: `Bearer ${PADDLE_API_KEY}`,
+    "Content-Type": "application/json",
+    "Paddle-Version": "1"
+  };
+  const createTransaction = async (payload) => {
+    const response = await fetch(`${PADDLE_API_BASE}/transactions`, {
+      method: "POST",
+      headers: requestHeaders,
+      body: JSON.stringify(payload)
+    });
+    const body2 = await response.json().catch(() => ({}));
+    return { response, body: body2 };
+  };
+  let { response: paddleResponse, body: paddlePayload } = await createTransaction(transactionPayload);
+  const firstErrorDetail = String(
+    ((_c = paddlePayload == null ? void 0 : paddlePayload.error) == null ? void 0 : _c.detail) || ((_d = paddlePayload == null ? void 0 : paddlePayload.error) == null ? void 0 : _d.code) || ""
+  ).toLowerCase();
+  const shouldRetryWithoutCheckout = !paddleResponse.ok && Boolean((_e = transactionPayload.checkout) == null ? void 0 : _e.url) && firstErrorDetail.includes("checkout.url") && firstErrorDetail.includes("approved");
+  if (shouldRetryWithoutCheckout) {
+    delete transactionPayload.checkout;
+    ({ response: paddleResponse, body: paddlePayload } = await createTransaction(transactionPayload));
+  }
+  if (!paddleResponse.ok) {
+    const detail = ((_f = paddlePayload == null ? void 0 : paddlePayload.error) == null ? void 0 : _f.detail) || ((_g = paddlePayload == null ? void 0 : paddlePayload.error) == null ? void 0 : _g.code) || "Paddle API error";
+    throw createError({
+      statusCode: paddleResponse.status || 500,
+      statusMessage: detail
+    });
+  }
+  const checkoutUrl = (_i = (_h = paddlePayload == null ? void 0 : paddlePayload.data) == null ? void 0 : _h.checkout) == null ? void 0 : _i.url;
+  if (!checkoutUrl) {
+    throw createError({
+      statusCode: 500,
+      statusMessage: "Paddle checkout URL missing in API response"
+    });
+  }
+  return { url: checkoutUrl };
+});
+
+export { createCheckout_post as default };
+//# sourceMappingURL=create-checkout.post.mjs.map

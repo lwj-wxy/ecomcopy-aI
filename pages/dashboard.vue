@@ -133,7 +133,10 @@ const authLoading = ref(true);
 
 const { locale, setLocale, initLocale } = useLocale();
 const t = computed(() => translations[locale.value]);
+const route = useRoute();
 const router = useRouter();
+const upgradeSuccessBanner = ref('');
+const hasHandledUpgradeSuccess = ref(false);
 
 const toneOptions = computed(() => [
   { value: 'professional', label: t.value.copywriting.tones.professional },
@@ -316,6 +319,48 @@ onMounted(() => {
     }
   });
 });
+
+const clearUpgradeStatusQuery = async () => {
+  const nextQuery = { ...route.query };
+  delete nextQuery.status;
+
+  try {
+    await router.replace({
+      path: route.path,
+      query: nextQuery
+    });
+  } catch (error) {
+    console.error('Failed to clear upgrade status query:', error);
+  }
+};
+
+const dismissUpgradeSuccessBanner = async () => {
+  upgradeSuccessBanner.value = '';
+  if (route.query.status === 'success') {
+    await clearUpgradeStatusQuery();
+  }
+};
+
+watch(
+  [() => route.query.status, () => userProfile.value?.plan, authLoading],
+  async ([status, plan, isAuthLoading]) => {
+    if (isAuthLoading || status !== 'success' || hasHandledUpgradeSuccess.value) return;
+    if (!plan || plan === 'free') return;
+
+    hasHandledUpgradeSuccess.value = true;
+
+    const planName = PLAN_NAMES.value[plan] || plan;
+    const successMessage =
+      locale.value === 'zh'
+        ? `升级成功，当前套餐已切换为 ${planName}。`
+        : `Upgrade successful. Your current plan is now ${planName}.`;
+
+    upgradeSuccessBanner.value = successMessage;
+    ElMessage.success(successMessage);
+    await clearUpgradeStatusQuery();
+  },
+  { immediate: true }
+);
 
 const fillExample = (example: any) => {
   params.value.productName = example.name;
@@ -945,6 +990,32 @@ const copyToClipboard = (text: string, field: string) => {
 
       <!-- Content Area -->
       <div class="flex-1 p-8 overflow-hidden">
+        <div
+          v-if="upgradeSuccessBanner"
+          class="mb-4 flex items-start justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 shadow-sm"
+        >
+          <div class="flex items-start gap-3">
+            <div class="mt-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500 text-white">
+              <Check class="h-3.5 w-3.5" />
+            </div>
+            <div>
+              <div class="font-semibold">
+                {{ locale === 'zh' ? '套餐升级成功' : 'Plan upgraded successfully' }}
+              </div>
+              <div class="mt-1 text-emerald-700">
+                {{ upgradeSuccessBanner }}
+              </div>
+            </div>
+          </div>
+          <button
+            @click="dismissUpgradeSuccessBanner"
+            class="text-emerald-600 transition-colors hover:text-emerald-800"
+            :aria-label="locale === 'zh' ? '关闭升级成功提醒' : 'Dismiss upgrade success message'"
+          >
+            <XCircle class="h-4 w-4" />
+          </button>
+        </div>
+
         <div v-if="activeTab === 'copywriting'" class="h-full grid grid-cols-[380px_1fr] gap-8 overflow-hidden">
           <!-- Editor Panel -->
           <div class="flex flex-col gap-5 overflow-y-auto pr-2">

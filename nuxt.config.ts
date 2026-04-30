@@ -27,6 +27,8 @@ export default defineNuxtConfig({
     geminiApiKey: process.env.GEMINI_API_KEY,
     public: {
       // Public keys are exposed to the browser
+      paddleClientToken: process.env.NUXT_PUBLIC_PADDLE_CLIENT_TOKEN,
+      paddleEnv: process.env.PADDLE_ENV
     }
   },
   css: ['~/assets/css/main.css'],

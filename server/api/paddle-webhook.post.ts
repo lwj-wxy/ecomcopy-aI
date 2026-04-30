@@ -2,6 +2,9 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
 import { FieldValue } from 'firebase-admin/firestore';
 
 import { getFirebaseAdminDb } from '../utils/firebase-admin';
+import { ensureServerEnvLoaded } from '../utils/load-env';
+
+ensureServerEnvLoaded();
 
 const PADDLE_WEBHOOK_SECRET = process.env.PADDLE_WEBHOOK_SECRET;
 const PADDLE_PRICE_STARTER = process.env.PADDLE_PRICE_STARTER;
@@ -121,11 +124,19 @@ export default defineEventHandler(async (event) => {
   }
 
   const eventType = payload?.event_type as string | undefined;
-  if (eventType !== 'transaction.completed' && eventType !== 'transaction.paid') {
+  const data = payload?.data || {};
+  const transactionStatus = String(data?.status || '').toLowerCase();
+
+  const shouldHandleTransactionEvent =
+    eventType === 'transaction.completed' ||
+    eventType === 'transaction.paid' ||
+    (eventType === 'transaction.updated' &&
+      (transactionStatus === 'completed' || transactionStatus === 'paid'));
+
+  if (!shouldHandleTransactionEvent) {
     return { received: true, ignored: true, eventType };
   }
 
-  const data = payload?.data || {};
   const customData = data?.custom_data || {};
 
   const planId = normalizePlan(customData?.planId) || inferPlanFromItems(data?.items);

@@ -10,22 +10,24 @@ import 'node:crypto';
 import 'node:url';
 import 'dotenv';
 
-var _a;
+var _a, _b;
 ensureServerEnvLoaded();
 const PADDLE_ENV = process.env.PADDLE_ENV === "sandbox" ? "sandbox" : "production";
 const PADDLE_API_KEY = process.env.PADDLE_API_KEY;
 const PADDLE_CHECKOUT_URL = (_a = process.env.PADDLE_CHECKOUT_URL) == null ? void 0 : _a.trim();
+const PUBLIC_SITE_URL = (_b = process.env.NUXT_PUBLIC_SITE_URL) == null ? void 0 : _b.trim();
+const RESOLVED_CHECKOUT_URL = PADDLE_CHECKOUT_URL || (PUBLIC_SITE_URL ? `${PUBLIC_SITE_URL.replace(/\/+$/, "")}/pay` : "");
 const PRICE_IDS = {
   starter: process.env.PADDLE_PRICE_STARTER,
   pro: process.env.PADDLE_PRICE_PRO
 };
 const PADDLE_API_BASE = PADDLE_ENV === "sandbox" ? "https://sandbox-api.paddle.com" : "https://api.paddle.com";
 const createCheckout_post = defineEventHandler(async (event) => {
-  var _a2, _b, _c, _d, _e, _f, _g, _h, _i;
+  var _a2, _b2, _c, _d, _e, _f;
   const body = await readBody(event);
   const planId = body == null ? void 0 : body.planId;
   const userId = (_a2 = body == null ? void 0 : body.userId) == null ? void 0 : _a2.trim();
-  const email = (_b = body == null ? void 0 : body.email) == null ? void 0 : _b.trim();
+  const email = (_b2 = body == null ? void 0 : body.email) == null ? void 0 : _b2.trim();
   if (!planId || !(planId in PRICE_IDS)) {
     throw createError({
       statusCode: 400,
@@ -61,8 +63,8 @@ const createCheckout_post = defineEventHandler(async (event) => {
       ...email ? { email } : {}
     }
   };
-  if (PADDLE_CHECKOUT_URL) {
-    transactionPayload.checkout = { url: PADDLE_CHECKOUT_URL };
+  if (RESOLVED_CHECKOUT_URL) {
+    transactionPayload.checkout = { url: RESOLVED_CHECKOUT_URL };
   }
   const requestHeaders = {
     Authorization: `Bearer ${PADDLE_API_KEY}`,
@@ -79,22 +81,14 @@ const createCheckout_post = defineEventHandler(async (event) => {
     return { response, body: body2 };
   };
   let { response: paddleResponse, body: paddlePayload } = await createTransaction(transactionPayload);
-  const firstErrorDetail = String(
-    ((_c = paddlePayload == null ? void 0 : paddlePayload.error) == null ? void 0 : _c.detail) || ((_d = paddlePayload == null ? void 0 : paddlePayload.error) == null ? void 0 : _d.code) || ""
-  ).toLowerCase();
-  const shouldRetryWithoutCheckout = !paddleResponse.ok && Boolean((_e = transactionPayload.checkout) == null ? void 0 : _e.url) && firstErrorDetail.includes("checkout.url") && firstErrorDetail.includes("approved");
-  if (shouldRetryWithoutCheckout) {
-    delete transactionPayload.checkout;
-    ({ response: paddleResponse, body: paddlePayload } = await createTransaction(transactionPayload));
-  }
   if (!paddleResponse.ok) {
-    const detail = ((_f = paddlePayload == null ? void 0 : paddlePayload.error) == null ? void 0 : _f.detail) || ((_g = paddlePayload == null ? void 0 : paddlePayload.error) == null ? void 0 : _g.code) || "Paddle API error";
+    const detail = ((_c = paddlePayload == null ? void 0 : paddlePayload.error) == null ? void 0 : _c.detail) || ((_d = paddlePayload == null ? void 0 : paddlePayload.error) == null ? void 0 : _d.code) || "Paddle API error";
     throw createError({
       statusCode: paddleResponse.status || 500,
       statusMessage: detail
     });
   }
-  const checkoutUrl = (_i = (_h = paddlePayload == null ? void 0 : paddlePayload.data) == null ? void 0 : _h.checkout) == null ? void 0 : _i.url;
+  const checkoutUrl = (_f = (_e = paddlePayload == null ? void 0 : paddlePayload.data) == null ? void 0 : _e.checkout) == null ? void 0 : _f.url;
   if (!checkoutUrl) {
     throw createError({
       statusCode: 500,

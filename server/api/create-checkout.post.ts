@@ -5,6 +5,10 @@ ensureServerEnvLoaded();
 const PADDLE_ENV = process.env.PADDLE_ENV === 'sandbox' ? 'sandbox' : 'production';
 const PADDLE_API_KEY = process.env.PADDLE_API_KEY;
 const PADDLE_CHECKOUT_URL = process.env.PADDLE_CHECKOUT_URL?.trim();
+const PUBLIC_SITE_URL = process.env.NUXT_PUBLIC_SITE_URL?.trim();
+const RESOLVED_CHECKOUT_URL =
+  PADDLE_CHECKOUT_URL ||
+  (PUBLIC_SITE_URL ? `${PUBLIC_SITE_URL.replace(/\/+$/, '')}/pay` : '');
 
 const PRICE_IDS: Record<string, string | undefined> = {
   starter: process.env.PADDLE_PRICE_STARTER,
@@ -60,10 +64,10 @@ export default defineEventHandler(async (event) => {
     }
   };
 
-  // checkout.url must be an approved payment-link domain in Paddle.
-  // If omitted, Paddle uses the account default payment link.
-  if (PADDLE_CHECKOUT_URL) {
-    transactionPayload.checkout = { url: PADDLE_CHECKOUT_URL };
+  // checkout.url must be on an approved Paddle payment-link domain.
+  // Set it explicitly so production never falls back to an old localtunnel default.
+  if (RESOLVED_CHECKOUT_URL) {
+    transactionPayload.checkout = { url: RESOLVED_CHECKOUT_URL };
   }
 
   const requestHeaders = {
@@ -83,20 +87,6 @@ export default defineEventHandler(async (event) => {
   };
 
   let { response: paddleResponse, body: paddlePayload } = await createTransaction(transactionPayload);
-
-  const firstErrorDetail = String(
-    paddlePayload?.error?.detail || paddlePayload?.error?.code || ''
-  ).toLowerCase();
-  const shouldRetryWithoutCheckout =
-    !paddleResponse.ok &&
-    Boolean(transactionPayload.checkout?.url) &&
-    firstErrorDetail.includes('checkout.url') &&
-    firstErrorDetail.includes('approved');
-
-  if (shouldRetryWithoutCheckout) {
-    delete transactionPayload.checkout;
-    ({ response: paddleResponse, body: paddlePayload } = await createTransaction(transactionPayload));
-  }
 
   if (!paddleResponse.ok) {
     const detail = paddlePayload?.error?.detail || paddlePayload?.error?.code || 'Paddle API error';

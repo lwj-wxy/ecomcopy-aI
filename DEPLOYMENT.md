@@ -23,6 +23,8 @@ This generates the `.output` folder containing the production-ready server and a
     - `PADDLE_WEBHOOK_SECRET`
     - `PADDLE_PRICE_STARTER`
     - `PADDLE_PRICE_PRO`
+    - `NUXT_PUBLIC_SITE_URL=https://<your-domain>`
+    - `PADDLE_CHECKOUT_URL=https://<your-domain>/pay`
     - `FIREBASE_ADMIN_PROJECT_ID`
     - `FIREBASE_ADMIN_CLIENT_EMAIL`
     - `FIREBASE_ADMIN_PRIVATE_KEY`
@@ -58,3 +60,6 @@ Create a Paddle notification destination that points to:
 Subscribe to at least:
 - `transaction.paid`
 - `transaction.completed`
+
+Also add `https://<your-domain>` as an approved payment-link domain in Paddle, otherwise
+transaction creation will fail instead of falling back to an old local tunnel URL.

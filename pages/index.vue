@@ -225,9 +225,10 @@ const faqs = computed(() => [
         </div>
         <p class="text-gray-400 text-sm mb-8">{{ t.landing.footer.copy }}</p>
         <div class="flex justify-center gap-6 text-gray-500 text-sm">
-          <a href="#" class="hover:text-white">{{ t.landing.footer.privacy }}</a>
-          <a href="#" class="hover:text-white">{{ t.landing.footer.terms }}</a>
-          <a href="#" class="hover:text-white">{{ t.landing.footer.contact }}</a>
+          <NuxtLink to="/privacy-policy" class="hover:text-white">{{ t.landing.footer.privacy }}</NuxtLink>
+          <NuxtLink to="/terms-and-conditions" class="hover:text-white">{{ t.landing.footer.terms }}</NuxtLink>
+          <NuxtLink to="/refund-policy" class="hover:text-white">Refund Policy</NuxtLink>
+          <a href="mailto:support@toolorbit.site" class="hover:text-white">{{ t.landing.footer.contact }}</a>
         </div>
       </div>
     </footer>
